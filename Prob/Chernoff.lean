@@ -13,9 +13,6 @@ We prove Hoeffding's inequality just for the Bernoulli case
 2. https://en.m.wikipedia.org/wiki/Hoeffding%27s_lemma
 -/
 
--- Work around https://github.com/leanprover/lean4/issues/2220
-local macro_rules | `($x ^ $y) => `(HPow.hPow $x $y) -- See issue lean4#2220
-
 open Prob
 open Real (log)
 open Set
