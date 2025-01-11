@@ -1,6 +1,8 @@
 Stochastic doubly-efficient debate formalization
 ================================================
 
+[![build](https://github.com/girving/debate/actions/workflows/lean.yml/badge.svg)](https://github.com/girving/debate/actions/workflows/lean.yml)
+
 **Summary:** We formalize the correctness of the main stochastic oracle
 doubly-efficient debate protocol from
 [Brown-Cohen, Irving, Piliouras (2023), Scalable AI safety via doubly-efficient debate](https://arxiv.org/abs/2311.14125)
