@@ -155,7 +155,7 @@ lemma sort_eq {π : α ≃ Fin (Fintype.card α)} {s t : List α} (d : s.Nodup)
   · simp only [← List.ofFn_id, List.map_eq_map, List.map_ofFn, CompTriple.comp_eq,
       List.sorted_ofFn_iff]
     intro x y xy
-    simp only [oracle, Equiv.apply_symm_apply, xy.le, decide_True, Prob.argmax_pure]
+    simp only [oracle, Equiv.apply_symm_apply, xy.le, decide_true, Prob.argmax_pure]
 
 omit [Fintype α] in
 lemma List.indexOf_map (l : List α) (f : α ≃ β) (x : β) :
@@ -235,7 +235,7 @@ def mergeSort : List α → SComp α (List α)
   | [] => pure []
   | [a] => pure [a]
   | a :: b :: l => do
-    let s := List.splitInTwo ⟨a :: b :: l, rfl⟩
+    let s := List.MergeSort.Internal.splitInTwo ⟨a :: b :: l, rfl⟩
     merge (← mergeSort s.1) (← mergeSort s.2)
   termination_by s => s.length
 
@@ -261,8 +261,8 @@ lemma mergeSort_eq (o : SOracle α) (d : o.Deterministic) : (s : List α) →
   | [] => by simp only [mergeSort, Comp.prob_pure, List.mergeSort_nil]
   | [a] => by simp only [mergeSort, Comp.prob_pure, List.mergeSort_singleton]
   | a :: b :: l => by
-    simp only [mergeSort, List.length_cons, List.splitInTwo_fst, List.splitInTwo_snd,
-      Comp.prob_bind, List.mergeSort]
+    simp only [mergeSort, List.length_cons, List.MergeSort.Internal.splitInTwo_fst,
+      List.MergeSort.Internal.splitInTwo_snd, Comp.prob_bind, List.mergeSort]
     --set t := List.splitInTwo ⟨a :: b :: l, rfl⟩
     simp only [mergeSort_eq o d ((List.take ((l.length + 1 + 1 + 1) / 2) (a :: b :: l))),
       mergeSort_eq o d ((List.drop ((l.length + 1 + 1 + 1) / 2) (a :: b :: l))),
@@ -337,8 +337,8 @@ lemma length_mergeSort (o : SOracle α) : (s x : List α) →
     simp only [mergeSort, List.mergeSort, Prob.prob_bind_ne_zero, Comp.prob_bind]
     intro x ⟨x1, px1, x2, px2, pm⟩
     simp only [Comp.prob', Comp.prob_bind, length_mergeSort o _ x1 px1, length_mergeSort o _ x2 px2,
-      length_merge o _ _ _ pm, List.length_cons, List.splitInTwo_fst, List.length_take,
-      List.splitInTwo_snd, List.length_drop]
+      length_merge o _ _ _ pm, List.length_cons, List.MergeSort.Internal.splitInTwo_fst,
+      List.length_take, List.MergeSort.Internal.splitInTwo_snd, List.length_drop]
     rw [min_eq_left]
     all_goals omega
   termination_by s => s.length
@@ -441,8 +441,8 @@ lemma cost_mergeSort_le (o : SOracle α) (s : List α) :
     · simp only [List.length_singleton] at hn
       simp [mergeSort,  ← hn]
     · simp only [List.length_cons, Nat.succ_eq_add_one] at hn
-      simp only [Comp.cost', mergeSort, Comp.cost_bind, List.splitInTwo, Prob.exp_add,
-        Prob.exp_const]
+      simp only [Comp.cost', mergeSort, Comp.cost_bind, List.MergeSort.Internal.splitInTwo,
+        Prob.exp_add, Prob.exp_const]
       refine le_trans (add_le_add (h _ ?_ _ rfl) (add_le_add (h _ ?_ _ rfl)
           (Prob.exp_le_of_forall_le fun x px ↦ Prob.exp_le_of_forall_le (b := n) fun y py ↦ ?_))) ?_
       · simp only [List.length_cons, List.splitAt_eq, List.length_take, ← hn, inf_lt_right, not_le]

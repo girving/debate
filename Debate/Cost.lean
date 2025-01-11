@@ -10,7 +10,6 @@ See `Correct.lean` for the summary.
 -/
 
 open Classical
-open Mathlib (Vector)
 open Prob
 open Option (some none)
 open Real (log)
@@ -28,18 +27,18 @@ variable {k c s b e p q v : ℝ}
 -/
 
 /-- Alice takes the expected number of samples -/
-@[simp] lemma alice_cost {y : Vector Bool n} {o : DOracle} :
+@[simp] lemma alice_cost {y : List.Vector Bool n} {o : DOracle} :
     (alice c q _ y).cost (fun _ ↦ o) AliceId = samples c q := by
   simp only [alice, alice', Comp.cost_estimate, Comp.cost_query, mul_one]
 
 /-- Bob takes the expected number of samples -/
-@[simp] lemma bob_cost {y : Vector Bool n} {p : ℝ} {o : DOracle} :
+@[simp] lemma bob_cost {y : List.Vector Bool n} {p : ℝ} {o : DOracle} :
     (bob s b q _ y p).cost (fun _ => o) BobId = samples ((b-s)/2) q := by
   simp only [bob, bob', alice', Comp.cost_bind, Comp.cost_estimate, Comp.cost_query, mul_one,
     Comp.prob_estimate, Comp.prob_query, Comp.cost_pure, exp_const, add_zero]
 
 /-- Vera takes the expected number of samples -/
-@[simp] lemma vera_cost {y : Vector Bool n} {p : ℝ} {o : DOracle} :
+@[simp] lemma vera_cost {y : List.Vector Bool n} {p : ℝ} {o : DOracle} :
     (vera c s v _ y p).cost (fun _ => o) VeraId = samples ((s-c)/2) v := by
   simp only [vera, bob', alice', Comp.cost_bind, Comp.cost_estimate, Comp.cost_query, mul_one,
     Comp.prob_estimate, Comp.prob_query, Comp.cost_pure, exp_const, add_zero]
@@ -153,11 +152,11 @@ cost calculation.
 -/
 
 /-- State for use by Vera at the end -/
-def StateV (n : ℕ) := Except (Σ n : ℕ, Vector Bool n × ℝ) (Vector Bool n)
+def StateV (n : ℕ) := Except (Σ n : ℕ, List.Vector Bool n × ℝ) (List.Vector Bool n)
 
 /-- One step of the debate protocol, without Vera
     c and s are the completeness and soundness parameters of the verifier. -/
-def stepV (alice : Alice) (bob : Bob) (y : Vector Bool n) :
+def stepV (alice : Alice) (bob : Bob) (y : List.Vector Bool n) :
     DComp {AliceId,BobId} (StateV (n+1)) := do
   let p ← (alice _ y).allow (by subset)
   if ←(bob _ y p).allow (by subset) then do  -- Bob accepts Alice's probability, so take the step
@@ -168,7 +167,7 @@ def stepV (alice : Alice) (bob : Bob) (y : Vector Bool n) :
 
 /-- `n` steps of the debate protocol, without Vera -/
 def stepsV (alice : Alice) (bob : Bob) : (n : ℕ) → DComp {AliceId,BobId} (StateV n)
-| 0 => pure (.ok Vector.nil)
+| 0 => pure (.ok .nil)
 | n+1 => do match ←stepsV alice bob n with
   | .ok y => stepV alice bob y
   | .error r => return .error r
@@ -182,7 +181,7 @@ def postV (vera : Vera) (x : StateV n) : DComp AllIds (State n) := match x with
 lemma post_stepsV (alice : Alice) (bob : Bob) (vera : Vera) :
     (stepsV alice bob n).allow_all >>= postV vera = steps alice bob vera n := by
   induction' n with n h
-  · simp only [Nat.zero_eq, Comp.allow_all, Comp.allow, postV, pure_bind, steps]
+  · simp only [Comp.allow_all, stepsV, Comp.allow_pure, pure_bind, postV, steps]
   · simp only [stepsV, Comp.allow_all_bind, bind_assoc, steps, ← h]
     apply congr_arg₂ _ rfl ?_
     ext x; induction' x with n y p

@@ -53,23 +53,75 @@ instance : LawfulMonad (Comp ι s) := LawfulMonad.mk'
 @[simp] lemma query'_bind (o : I) (m : o ∈ s) (y : ι) (f0 f1 : Comp ι s α)
     (g : α → Comp ι s β) : query' o m y f0 f1 >>= g = .query' o m y (f0 >>= g) (f1 >>= g) := rfl
 
-/-- `sample'.prob` is easy -/
-@[simp] lemma prob_sample' (f : Prob (Fin n)) (g : Fin n → Comp ι s β) (o : I → Oracle ι) :
-    (Comp.sample' f g).prob o = f >>= fun x ↦ (g x).prob o  := by
-  simp only [prob, run, map_bind, map_pure, bind_pure]
-
-/-- `sample.prob` is easy -/
-@[simp] lemma prob_sample (f : Prob α) (g : α → Comp ι s β) (o : I → Oracle ι) :
-    (Comp.sample f g).prob o = f >>= fun x ↦ (g x).prob o  := by
-  simp only [prob, run, Function.comp_apply, map_bind, bind_fin f fun x ↦ Prod.fst <$> (g x).run o]
-
-/-- Coersion of `Prob` matches `run` -/
-@[simp] lemma run_coe (f : Prob α) (o : I → Oracle ι) : (f : Comp ι s α).prob o = f := by
-  simp only [prob, run, bind_pure_comp, Functor.map_map, map_fin]
+-- The definition of `Comp.allow` as `simp` lemmas
+@[simp] lemma allow_pure' (x : α) (st : s ⊆ t) : (pure' x : Comp ι s α).allow st = pure x := rfl
+@[simp] lemma allow_sample' (f : Prob (Fin n)) (g : Fin n → Comp ι s α) (st : s ⊆ t) :
+    (sample' f g).allow st = sample' f fun x ↦ (g x).allow st := rfl
+@[simp] lemma allow_query' (i : I) (m : i ∈ s) (y : ι) (f0 f1 : Comp ι s α) (st : s ⊆ t) :
+    (query' i m y f0 f1).allow st = query' i (st m) y (f0.allow st) (f1.allow st) := rfl
 
 /-- Cost is nonnegative -/
 @[simp] lemma cost_nonneg {f : Comp ι s α} {o : I → Oracle ι} {i : I} : 0 ≤ f.cost o i := by
   apply exp_nonneg; simp only [ne_eq, Nat.cast_nonneg, implies_true, Prod.forall, forall_const]
+
+/-!
+## `Comp.run` commutes with various things
+-/
+
+@[simp] lemma run_pure' (x : α) (o : I → Oracle ι) :
+    (Comp.pure' x : Comp ι s α).run o = pure (x, fun _ ↦ 0) := by
+  simp only [Comp.run]
+
+@[simp] lemma run_pure (x : α) (o : I → Oracle ι) :
+    (pure x : Comp ι s α).run o = pure (x, fun _ ↦ 0) := by
+  simp only [pure, Comp.run]
+
+@[simp] lemma run_sample' (f : Prob (Fin n)) (g : Fin n → Comp ι s β) (o : I → Oracle ι) :
+    (sample' f g).run o = f >>= fun x ↦ (g x).run o := by
+  simp only [pure, Comp.run]
+
+@[simp] lemma run_sample (f : Prob α) (g : α → Comp ι s β) (o : I → Oracle ι) :
+    (Comp.sample f g).run o = f >>= fun x ↦ (g x).run o := by
+  simp only [sample, run, Function.comp_apply, bind_fin f fun x ↦ (g x).run o]
+
+lemma run_query' {i : I} (m : i ∈ s) (y : ι) (f0 f1 : Comp ι s α)
+    (o : I → Oracle ι) : (Comp.query' i m y f0 f1).run o = do
+      let x ← (o i) y
+      let (z,c) ← if x then f0.run o else f1.run o
+      return (z, c + fun j => if j = i then 1 else 0) := by
+  rfl
+
+/-- Coersion of `Prob` matches `run` -/
+@[simp] lemma run_coe (f : Prob α) (o : I → Oracle ι) : (f : Comp ι s α).prob o = f := by
+  simp only [prob, run, bind_pure_comp, Functor.map_map, map_fin, run_sample, id_map']
+
+@[simp] lemma run_bind (f : Comp ι s α) (g : α → Comp ι s β) (o : I → Oracle ι) :
+    (f >>= g).run o = f.run o >>= fun (x,c) ↦ (fun (y,c') ↦ (y, c + c')) <$> (g x).run o := by
+  induction' f with x β f g' h j m y f0 f1 h0 h1
+  · simp only [pure'_bind, run_pure', Pi.add_def, pure_bind, zero_add, Prod.mk.eta, id_map']
+  · have e : ∀ x, bind' (g' x) g = g' x >>= g := fun _ ↦ rfl
+    simp only [sample'_bind, run_sample', h, bind_assoc]
+  · have e : ∀ h, bind' h g = h >>= g := fun _ ↦ rfl
+    simp only [run_query', query'_bind, e, h0, bind_assoc, h1, Prob.map_eq]
+    refine congr_arg₂ _ rfl ?_
+    funext b
+    induction b
+    all_goals simp only [ite_false, ite_true, bind_assoc, pure_bind, Pi.add_def, add_comm,
+      add_assoc, Bool.false_eq_true]
+
+@[simp] lemma run_allow (f : Comp ι s α) (st : s ⊆ t) (o : I → Oracle ι) :
+    (f.allow st).run o = f.run o := by
+  induction' f with x β f g h j _ y f0 f1 h0 h1
+  · simp only [allow, run_pure, run_pure']
+  · simp only [run_sample', allow_sample', bind', h, Prob.bind_fin f (fun x ↦ (g x).run o)]
+  · simp only [allow_query', run_query', h0, h1]
+
+@[simp] lemma run_allow_all (f : Comp ι s α) (o : I → Oracle ι) : f.allow_all.run o = f.run o := by
+  apply run_allow
+
+@[simp] lemma prob_sample' (f : Prob (Fin n)) (g : Fin n → Comp ι s β) (o : I → Oracle ι) :
+    (Comp.sample' f g).prob o = f >>= fun x ↦ (g x).prob o  := by
+  simp only [prob, run, map_bind, map_pure, bind_pure]
 
 /-!
 ## `Comp.cost` commutes with various things
@@ -101,9 +153,7 @@ instance : LawfulMonad (Comp ι s) := LawfulMonad.mk'
 /-- `sample'` cost's is the expected follow-on cost -/
 @[simp] lemma cost_sample (f : Prob (Fin n)) (g : Fin n → Comp ι s β) (o : I → Oracle ι) (i : I) :
     (Comp.sample f g).cost o i = f.exp (fun x ↦ (g x).cost o i) := by
-  simp only [cost, run, exp_bind, Nat.cast_zero, Prob.fin, exp_map, Function.comp_def]
-  refine exp_congr fun x px ↦ ?_
-  simp only [ne_eq, px, not_false_eq_true, fromfin_tofin]
+  simp only [cost, run_sample, exp_bind, Nat.cast_zero, Prob.fin, exp_map, Function.comp_def]
 
 /-- `sample'` cost's is the expected follow-on cost -/
 @[simp] lemma cost'_sample (f : Prob (Fin n)) (g : (Fin n) → Comp ι s β) (o : Oracle ι) (i : I) :
@@ -123,6 +173,11 @@ instance : LawfulMonad (Comp ι s) := LawfulMonad.mk'
   all_goals simp only [ite_false, ite_true, exp_bind, exp_pure, Pi.add_apply, Nat.cast_add,
     Nat.cast_ite, Nat.cast_one, Nat.cast_zero, exp_add, exp_const, add_comm, Bool.false_eq_true]
 
+/-- `query` makes one query -/
+@[simp] lemma cost_query (i : I) (y : ι) (o : I → Oracle ι) :
+    (query i y).cost o i = 1 := by
+  simp only [query, cost_query', ite_true, cost_pure, ite_self, exp_const, add_zero]
+
 /-- Non-oracle computations are free -/
 @[simp] lemma cost_coe (f : Prob α) (o : I → Oracle ι) (i : I) : (f : Comp ι s α).cost o i = 0 := by
   simp only [cost_sample', Function.comp_apply, cost_pure, exp_const, sample]
@@ -138,14 +193,6 @@ lemma cost_of_not_mem (f : Comp ι s α) (o : I → Oracle ι) {i : I} (is : i �
     · simp only [ij] at is; simp only [js, not_true_eq_false] at is
     · simp only [ij, if_false]
 
-/-- Expanding `query'.run` -/
-lemma run_query {i : I} (m : i ∈ s) (y : ι) (f0 f1 : Comp ι s α)
-    (o : I → Oracle ι) : (Comp.query' i m y f0 f1).run o = do
-      let x ← (o i) y
-      let (z,c) ← if x then f0.run o else f1.run o
-      return (z, c + fun j => if j = i then 1 else 0) := by
-  rfl
-
 /-- The cost of `f >>= g` is roughly `f.cost + g.cost` -/
 lemma cost_bind (f : Comp ι s α) (g : α → Comp ι s β) (o : I → Oracle ι) (i : I) :
     (f >>= g).cost o i = f.cost o i + (f.prob o).exp (fun x ↦ (g x).cost o i) := by
@@ -158,12 +205,11 @@ lemma cost_bind (f : Comp ι s α) (g : α → Comp ι s β) (o : I → Oracle �
   · simp only [bind, bind'] at h0 h1
     simp only [cost_query', bind, bind', prob, add_assoc, h0, h1]
     apply congr_arg₂ _ rfl
-    simp only [run_query, map_bind, exp_bind, ←exp_add]
-    apply exp_congr; intro x _; induction x; all_goals {
-      simp only [ite_true, ite_false, add_right_inj, exp_map, Function.comp_def, exp_bind,
-        Bool.false_eq_true]
-      apply exp_congr; intro _; simp only [ne_eq, exp_pure, implies_true]
-    }
+    simp only [run_query', bind_pure_comp, map_bind, exp_bind, ← exp_add]
+    refine exp_congr fun x _ ↦ ?_
+    induction x
+    all_goals simp only [Bool.false_eq_true, ↓reduceIte, exp_map, Function.comp_def,
+      Functor.map_map]
 
 /-- Map doesn't change `cost` -/
 @[simp] lemma cost_map (f : α → β) (g : Comp ι s α) (o : I → Oracle ι) (i : I) :
@@ -191,48 +237,7 @@ lemma cost_eq_zero {f : Comp ι s α} {i : I} (m : i ∉ s) (o : I → Oracle ι
     (estimate f n).cost o i = n * (f.cost o i) := by
   simp only [estimate, cost_map, cost_count]
 
-/-- `query` makes one query -/
-@[simp] lemma cost_query (i : I) (y : ι) (o : I → Oracle ι) :
-    (query i y).cost o i = 1 := by
-  simp only [query, cost_query', ite_true, cost_pure, ite_self, exp_const, add_zero]
-
 /-!
-## `Comp.run` commutes with various things
--/
-
-@[simp] lemma run_pure' (x : α) (o : I → Oracle ι) :
-    (Comp.pure' x : Comp ι s α).run o = pure (x, fun _ ↦ 0) := by
-  simp only [Comp.run]
-
-@[simp] lemma run_pure (x : α) (o : I → Oracle ι) :
-    (pure x : Comp ι s α).run o = pure (x, fun _ ↦ 0) := by
-  simp only [pure, Comp.run]
-
-@[simp] lemma run_bind (f : Comp ι s α) (g : α → Comp ι s β) (o : I → Oracle ι) :
-    (f >>= g).run o = f.run o >>= fun (x,c) ↦ (fun (y,c') ↦ (y, c + c')) <$> (g x).run o := by
-  induction' f with x β f g' h j m y f0 f1 h0 h1
-  · simp only [pure'_bind, run_pure', Pi.add_def, pure_bind, zero_add, Prod.mk.eta, id_map']
-  · have e : ∀ x, bind' (g' x) g = g' x >>= g := fun _ ↦ rfl
-    simp only [run, bind_assoc, e, h]
-  · have e : ∀ h, bind' h g = h >>= g := fun _ ↦ rfl
-    simp only [run, e, h0, bind_assoc, h1, Prob.map_eq]
-    refine congr_arg₂ _ rfl ?_
-    funext b
-    induction b
-    all_goals simp only [ite_false, ite_true, bind_assoc, pure_bind, Pi.add_def, add_comm,
-      add_assoc, Bool.false_eq_true]
-
-@[simp] lemma run_allow (f : Comp ι s α) (st : s ⊆ t) (o : I → Oracle ι) :
-    (f.allow st).run o = f.run o := by
-  induction' f with x β f g h j _ y f0 f1 h0 h1
-  · simp only [allow, run_pure, run_pure']
-  · simp only [run, bind', h, Prob.bind_fin f (fun x ↦ (g x).run o)]
-  · simp only [run, h0, h1]
-
-@[simp] lemma run_allow_all (f : Comp ι s α) (o : I → Oracle ι) : f.allow_all.run o = f.run o := by
-  apply run_allow
-
- /-!
 ## `Comp.prob` commutes with various things
 -/
 
@@ -264,6 +269,11 @@ lemma cost_eq_zero {f : Comp ι s α} {i : I} (m : i ∉ s) (o : I → Oracle ι
 @[simp] lemma prob_map (f : α → β) (g : Comp ι s α) (o : I → Oracle ι) :
     (f <$> g).prob o = f <$> g.prob o := by
   simp only [Comp.map_eq, prob_bind, prob_pure, Prob.map_eq]
+
+@[simp] lemma prob_sample (f : Prob α) (g : α → Comp ι s β) (o : I → Oracle ι) :
+    (Comp.sample f g).prob o = f >>= fun x ↦ (g x).prob o  := by
+  simp only [prob, run, Function.comp_apply, map_bind, bind_fin f fun x ↦ Prod.fst <$> (g x).run o,
+    run_sample]
 
 @[simp] lemma prob_count (f : Comp ι s Bool) (n : ℕ) (o : I → Oracle ι) :
     (count f n).prob o = count (f.prob o) n := by

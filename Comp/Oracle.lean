@@ -16,7 +16,6 @@ for some number of steps.  The final bit is the result.
 open Classical
 open Prob
 open Option (some none)
-open Mathlib (Vector)
 open scoped Real
 noncomputable section
 
@@ -27,8 +26,8 @@ def Oracle (α : Type) := α → Prob Bool
 
 /-- n random bits from an oracle, each given by feeding the oracle the previous result.
     This models an arbitrary computation, as o can behave differently based on input length. -/
-def Oracle.fold (o : Oracle (List Bool)) : (n : ℕ) → Prob (Vector Bool n)
-| 0 => pure Vector.nil
+def Oracle.fold (o : Oracle (List Bool)) : (n : ℕ) → Prob (List.Vector Bool n)
+| 0 => pure .nil
 | n+1 => do
   let y ← o.fold n
   let x ← o y.toList

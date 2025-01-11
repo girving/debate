@@ -22,22 +22,22 @@ def bernoulli (p' : ℝ) : Prob Bool := by
     prob := fun₀ | true => p | false => 1-p
     prob_nonneg := by
       intro x; induction x
-      · simp only [Finsupp.coe_update, Function.update_same, sub_nonneg, max_le_iff, zero_le_one,
+      · simp only [Finsupp.coe_update, Function.update_self, sub_nonneg, max_le_iff, zero_le_one,
           min_le_iff, le_refl, true_or, and_self, p]
       · simp only [Finsupp.coe_update, ne_eq, Bool.true_eq_false, not_false_eq_true,
-          Function.update_noteq, Finsupp.single_eq_same, le_max_iff, le_refl, le_min_iff,
+          Function.update_of_ne, Finsupp.single_eq_same, le_max_iff, le_refl, le_min_iff,
           zero_le_one, true_and, true_or, p]
     total := by
       simp only [implies_true, Finsupp.sum_fintype, Fintype.univ_bool, Finsupp.coe_update,
         Finset.mem_singleton, Bool.true_eq_false, not_false_eq_true, Finset.sum_insert, ne_eq,
-        Function.update_noteq, Finsupp.single_eq_same, Finset.sum_singleton, Function.update_same,
+        Function.update_of_ne, Finsupp.single_eq_same, Finset.sum_singleton, Function.update_self,
         add_sub_cancel]
   }
 
 -- If p is arbitrary, the probabilities are clamped
 lemma bernoulli_prob_true' (p : ℝ) : (bernoulli p).prob true = max 0 (min 1 p) := by
   simp only [bernoulli, Finsupp.coe_update, ne_eq, Bool.true_eq_false, not_false_eq_true,
-    Function.update_noteq, Finsupp.single_eq_same]
+    Function.update_of_ne, Finsupp.single_eq_same]
 lemma bernoulli_prob_false' (p : ℝ) : (bernoulli p).prob false = 1 - max 0 (min 1 p) := by
   simp only [bool_prob_false_of_true, bernoulli_prob_true']
 

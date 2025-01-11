@@ -10,7 +10,6 @@ The stochastic oracle doubly-efficient debate protocol
 
 open Classical
 open Comp
-open Mathlib (Vector)
 open Prob
 open Option (some none)
 open scoped Real
@@ -40,11 +39,11 @@ abbrev DOracle := Oracle (List Bool)
 /-- The state of a debate.  Either
     1. An uninterrupted Vector Bool n trace, or
     2. A final result if we rejected. -/
-def State (n : ℕ) := Except Bool (Vector Bool n)
+def State (n : ℕ) := Except Bool (List.Vector Bool n)
 
 /-- Alice takes the transcript so far and estimates a probability that the next step is 1.
     Alice's goal is to produce output 1.  An honest Alice will try to mimic Oracle.fold. -/
-def Alice' (o : OracleId) := (n : ℕ) → Vector Bool n → DComp {o} ℝ
+def Alice' (o : OracleId) := (n : ℕ) → List.Vector Bool n → DComp {o} ℝ
 
 /-- Alice using the normal `AliceId` -/
 def Alice := Alice' AliceId
@@ -53,13 +52,13 @@ def Alice := Alice' AliceId
     Technically in Figure 4 Bob also sees the chosen bit, but this is irrelevant to the protocol.
     In the game, Bob's goal is to produce output 0.  An honest Bob will yell iff Alice doesn't
     mimic Oracle.fold. -/
-def Bob' (o : OracleId) := (n : ℕ) → Vector Bool n → ℝ → DComp {o} Bool
+def Bob' (o : OracleId) := (n : ℕ) → List.Vector Bool n → ℝ → DComp {o} Bool
 
 /-- Bob using the normal `BobId` -/
 def Bob := Bob' BobId
 
 /-- Verifiers have an identical type signature to Bob, but use weaker parameters. -/
-def Vera := (n : ℕ) → Vector Bool n → ℝ → DComp {VeraId} Bool
+def Vera := (n : ℕ) → List.Vector Bool n → ℝ → DComp {VeraId} Bool
 
 /-- Enough samples to estimate a probability with error < e with failure probability ≤ q -/
 def samples (e q : ℝ) : ℕ := Nat.ceil (-Real.log (q/2) / (2 * e^2))
@@ -92,7 +91,7 @@ def bob (c s q : ℝ) : Bob := bob' c s q BobId
 def vera (s v q : ℝ) : Vera := bob' s v q VeraId
 
 /-- One step of the debate protocol -/
-def step (alice : Alice) (bob : Bob) (vera : Vera) (y : Vector Bool n) :
+def step (alice : Alice) (bob : Bob) (vera : Vera) (y : List.Vector Bool n) :
     DComp AllIds (State (n+1)) := do
   let p ← (alice _ y).allow_all
   if ←(bob _ y p).allow_all then do  -- Bob accepts Alice's probability, so take the step
@@ -103,7 +102,7 @@ def step (alice : Alice) (bob : Bob) (vera : Vera) (y : Vector Bool n) :
 
 /-- n steps of the debate protocol -/
 def steps (alice : Alice) (bob : Bob) (vera : Vera) : (n : ℕ) → DComp AllIds (State n)
-| 0 => pure (.ok Vector.nil)
+| 0 => pure (.ok .nil)
 | n+1 => do match ←steps alice bob vera n with
   | .ok y => step alice bob vera y
   | .error r => return .error r
