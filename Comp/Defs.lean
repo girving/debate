@@ -3,7 +3,7 @@ import Prob.Defs
 import Prob.Fin
 
 /-!
-## Oracle-relative probabilitistic computations
+## Oracle-relative probabilistic computations
 
 `Prob α` represents the result of a probabilistic computation, but has no information about
 how long the computation took.  `Comp ι s α` is a computation that is allowed to consult any
@@ -95,5 +95,3 @@ def allow (f : Comp ι s α) (st : s ⊆ t) : Comp ι t α := match f with
 /-- Allow all oracles in a computation -/
 def allow_all (f : Comp ι s α) : Comp ι (@univ I) α :=
   f.allow (subset_univ s)
-
-end Comp
