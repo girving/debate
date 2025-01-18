@@ -93,8 +93,9 @@ lemma exp_mono {f : Prob α} {g h : α → ℝ} (gh : ∀ x, f.prob x ≠ 0 → 
     f.exp g ≤ f.exp h := by
   simp only [exp]; apply Finset.sum_le_sum; intro x m
   exact mul_le_mul_of_nonneg_left (gh x (mem_iff.mp m)) (prob_nonneg _)
-lemma exp_nonneg {f : Prob α} {g : α → ℝ} (g0 : ∀ x, f.prob x ≠ 0 → 0 ≤ g x) : 0 ≤ f.exp g := by
-  have m := exp_mono g0; simp only [exp_const] at m; exact m
+@[bound] lemma exp_nonneg {f : Prob α} {g : α → ℝ} (g0 : ∀ x, f.prob x ≠ 0 → 0 ≤ g x) :
+    0 ≤ f.exp g := by
+  simpa only [exp_const] using exp_mono g0
 
 /-- Expectation is monotonic, general version for different distributions -/
 lemma exp_mono' {f g : Prob α} (u v : α → ℝ) (h : ∀ x, f.prob x * u x ≤ g.prob x * v x) :
@@ -131,9 +132,9 @@ lemma mean_mul (f g : Prob ℝ) : (f * g).mean = f.mean * g.mean := by
   rfl
 
 -- f.pr is between 0 and 1
-lemma pr_nonneg {f : Prob α} {p : α → Prop} : 0 ≤ f.pr p := by
+@[bound] lemma pr_nonneg {f : Prob α} {p : α → Prop} : 0 ≤ f.pr p := by
   simp only [pr]; apply exp_nonneg; intro x _; split; norm_num; rfl
-lemma pr_le_one {f : Prob α} {p : α → Prop} : f.pr p ≤ 1 := by
+@[bound] lemma pr_le_one {f : Prob α} {p : α → Prop} : f.pr p ≤ 1 := by
   simp only [pr]; apply le_trans (@exp_mono _ f _ (fun _ ↦ 1) _)
   · simp only [exp_const]; rfl
   · intro x _; split; rfl; norm_num

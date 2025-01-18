@@ -2,6 +2,7 @@ import Comp.Basic
 import Debate.Details
 import Debate.Protocol
 import Mathlib.Data.Complex.ExponentialBounds
+import Mathlib.Tactic.Bound
 
 /-!
 # Query complexity for each agent in the debate protocol
@@ -17,29 +18,29 @@ open Set
 open scoped Real
 noncomputable section
 
+variable {ι I α β: Type}
 variable {i : OracleId}
-variable {o : DOracle}
-variable {n t : ℕ}
+variable {o : Oracle ι}
+variable {u : Set I}
+variable {n : ℕ}
 variable {k c s b e p q v : ℝ}
+variable {y : ι}
 
 /-!
 ### Costs for a single player invocation
 -/
 
 /-- Alice takes the expected number of samples -/
-@[simp] lemma alice_cost {y : List.Vector Bool n} {o : DOracle} :
-    (alice c q _ y).cost (fun _ ↦ o) AliceId = samples c q := by
+@[simp] lemma alice_cost : (alice c q y).cost (fun _ ↦ o) AliceId = samples c q := by
   simp only [alice, alice', Comp.cost_estimate, Comp.cost_query, mul_one]
 
 /-- Bob takes the expected number of samples -/
-@[simp] lemma bob_cost {y : List.Vector Bool n} {p : ℝ} {o : DOracle} :
-    (bob s b q _ y p).cost (fun _ => o) BobId = samples ((b-s)/2) q := by
+@[simp] lemma bob_cost : (bob s b q y p).cost (fun _ => o) BobId = samples ((b-s)/2) q := by
   simp only [bob, bob', alice', Comp.cost_bind, Comp.cost_estimate, Comp.cost_query, mul_one,
     Comp.prob_estimate, Comp.prob_query, Comp.cost_pure, exp_const, add_zero]
 
 /-- Vera takes the expected number of samples -/
-@[simp] lemma vera_cost {y : List.Vector Bool n} {p : ℝ} {o : DOracle} :
-    (vera c s v _ y p).cost (fun _ => o) VeraId = samples ((s-c)/2) v := by
+@[simp] lemma vera_cost : (vera c s v y p).cost (fun _ => o) VeraId = samples ((s-c)/2) v := by
   simp only [vera, bob', alice', Comp.cost_bind, Comp.cost_estimate, Comp.cost_query, mul_one,
     Comp.prob_estimate, Comp.prob_query, Comp.cost_pure, exp_const, add_zero]
 
@@ -47,102 +48,118 @@ variable {k c s b e p q v : ℝ}
 ### Alice and Bob cost
 -/
 
+/-- TODO: Upstream -/
+@[bound] private alias ⟨_, Bound.nat_cast_le⟩ := Nat.cast_le
+
+-- Version of `Finset.le_sup` that work inside `bound`
+@[bound] lemma Finset.le_univ_fin_sup (f : Fin n → Comp ι u α) {x : Fin n} :
+    (f x).worst ≤ Finset.univ.sup fun x ↦ (f x).worst := by
+  apply Finset.le_sup (Finset.mem_univ x)
+@[bound] lemma Finset.le_univ_bool_sup (f : Bool → Comp ι u α) {x : Bool} :
+    (f x).worst ≤ Finset.univ.sup fun x ↦ (f x).worst := by
+  apply Finset.le_sup (Finset.mem_univ x)
+
 /-- Alice makes few queries, regardless of Bob and Vera -/
-lemma alice_steps_cost (o : DOracle) (bob : Bob) (vera : Vera) (n : ℕ):
-    (steps (alice c q) bob vera n).cost (fun _ ↦ o) AliceId ≤ n * samples c q := by
-  induction' n with n h
-  · simp only [Nat.zero_eq, steps, Comp.cost_pure, CharP.cast_eq_zero, zero_mul, le_refl]
-  · simp only [steps, Comp.cost_bind, Nat.cast_succ, add_mul, one_mul]
-    refine add_le_add h (exp_le_of_forall_le (fun y m ↦ ?_))
-    induction y
-    · simp only [Comp.cost_pure, Nat.cast_nonneg]
-    · simp only [step, Comp.sample'_bind, pure_bind, Comp.cost_bind, alice_cost,
-        Comp.prob_allow_all, add_le_iff_nonpos_right, Comp.cost_allow_all]
-      refine exp_le_of_forall_le fun _ _ ↦ add_nonpos (by zero_cost) ?_
-      refine exp_le_of_forall_le fun x m ↦ ?_
-      induction x
-      · simp only [ite_false, Comp.cost_bind, Comp.cost_allow_all, Comp.prob_allow_all,
-          Comp.cost_pure, exp_const, add_zero, Bool.false_eq_true]
-        zero_cost
-      · simp only [↓reduceIte, bind_pure_comp, Comp.cost_map, Comp.cost_coe, le_refl]
+lemma alice_steps_cost (bob : Bob ι) (vera : Vera ι) (f : Comp ι u α) :
+    (steps (alice c q) bob vera f).cost (fun _ ↦ o) AliceId ≤ f.worst * samples c q := by
+  induction' f with x n p g h i m y f h
+  · simp only [steps, Comp.cost_pure']
+    bound
+  · simp only [steps, Comp.cost_sample', Comp.worst_sample']
+    exact exp_le_of_forall_le fun x x0 ↦ le_trans (h _) (by bound)
+  · simp only [steps, step, bind_assoc, Comp.cost_bind, exp_const, Comp.cost_allow_all, alice_cost,
+      mem_singleton_iff, reduceCtorEq, not_false_eq_true, Comp.cost_eq_zero, zero_add, ite_self,
+      Comp.cost_pure, Comp.worst_query', Nat.cast_add, Nat.cast_succ, CharP.cast_eq_zero, add_mul,
+      one_mul, add_le_add_iff_left, Comp.cost_map, Comp.cost_sample,
+      apply_ite (f := fun c ↦ Comp.cost c (fun _ ↦ o) AliceId)]
+    refine exp_le_of_forall_le fun p _ ↦ exp_le_of_forall_le fun x _ ↦ ?_
+    match x with
+    | true =>
+      refine exp_le_of_forall_le fun z _ ↦ ?_
+      match z with
+      | .ok _ => exact le_trans (h _) (by bound)
+      | .error _ => simp; bound
+    | false => simp [exp_map, Function.comp_def]; bound
 
 /-- Bob makes few queries, regardless of Alice and Vera -/
-lemma bob_steps_cost (o : DOracle) (alice : Alice) (vera : Vera) (n : ℕ):
-    (steps alice (bob s b q) vera n).cost (fun _ ↦ o) BobId ≤ n * samples ((b-s)/2) q := by
-  induction' n with n h
-  · simp only [Nat.zero_eq, steps, Comp.cost_pure, CharP.cast_eq_zero, zero_mul, le_refl]
-  · simp only [steps, Comp.cost_bind, Nat.cast_succ, add_mul, one_mul]
-    refine add_le_add h (exp_le_of_forall_le (fun y m ↦ ?_))
-    induction y
-    · simp only [Comp.cost_pure, Nat.cast_nonneg]
-    · simp only [step, Comp.sample'_bind, pure_bind, Comp.cost_bind, Comp.cost_allow_all,
-        Comp.prob_allow_all]
-      have b0 : ∀ y o, (alice n y).cost o BobId = 0 := by intro _ _; zero_cost
-      rw [b0, zero_add]
-      refine exp_le_of_forall_le fun _ _ ↦ ?_
-      simp only [bob_cost, add_le_iff_nonpos_right]
-      refine (exp_eq_zero fun x _ ↦ ?_).le
-      induction x
-      · simp only [ite_false, Comp.cost_bind, Comp.cost_allow_all, Comp.prob_allow_all,
-          Comp.cost_pure, exp_const, add_zero, Bool.false_eq_true]
-        zero_cost
-      · simp only [↓reduceIte, bind_pure_comp, Comp.cost_map, Comp.cost_coe]
+lemma bob_steps_cost (alice : Alice ι) (vera : Vera ι) (f : Comp ι u α) :
+    (steps alice (bob s b q) vera f).cost (fun _ ↦ o) BobId ≤ f.worst * samples ((b-s)/2) q := by
+  induction' f with x n p g h i m y f h
+  · simp only [steps, Comp.cost_pure', Comp.worst_pure', CharP.cast_eq_zero, zero_mul, le_refl]
+  · simp only [steps, Comp.cost_sample', Comp.worst_sample']
+    exact exp_le_of_forall_le fun x x0 ↦ le_trans (h _) (by bound)
+  · simp only [steps, step, bind_pure_comp, bind_assoc, Comp.cost_bind, Comp.cost_allow_all,
+      mem_singleton_iff, reduceCtorEq, not_false_eq_true, Comp.cost_eq_zero, Comp.prob_allow_all,
+      bob_cost, exp_const_add, zero_add, Comp.worst_query', Nat.cast_add, Nat.cast_one, add_mul,
+      one_mul, add_le_add_iff_left]
+    refine exp_le_of_forall_le fun p _ ↦ exp_le_of_forall_le fun x _ ↦ ?_
+    match x with
+    | true =>
+      simp only [↓reduceIte, Comp.cost_map, Comp.cost_sample, Comp.cost_pure, exp_const, zero_add,
+        Comp.prob_map, Comp.prob_sample, Comp.prob_pure, bind_pure, exp_map, Function.comp_def]
+      exact exp_le_of_forall_le fun x _ ↦ le_trans (h _) (by bound)
+    | false => simp [exp_map, Function.comp_def]; bound
 
 /-- Alice makes few queries, regardless of Bob and Vera -/
-theorem alice_debate_cost (o : DOracle) (bob : Bob) (vera : Vera) (t : ℕ):
-    (debate (alice c q) bob vera t).cost' o AliceId ≤ (t+1) * samples c q := by
+theorem alice_debate_cost (bob : Bob ι) (vera : Vera ι) (f : Comp ι u Bool) :
+    (debate (alice c q) bob vera f).cost' o AliceId ≤ f.worst * samples c q := by
   simp only [debate, Comp.cost', Comp.cost_bind]
-  have e : ((t:ℝ) + 1) * samples c q = (t + 1) * samples c q + 0 := by rw [add_zero]
-  rw [e]
+  rw [← add_zero (_ * _)]
   apply add_le_add
-  · rw [←Nat.cast_add_one]; apply alice_steps_cost
-  · refine exp_le_of_forall_le (fun y m ↦ ?_)
+  · apply alice_steps_cost
+  · refine exp_le_of_forall_le fun y _ ↦ ?_
     induction y; repeat simp only [Comp.cost_pure, le_refl]
 
 /-- Bob makes few queries, regardless of Alice and Vera -/
-theorem bob_debate_cost (o : DOracle) (alice : Alice) (vera : Vera) (t : ℕ):
-    (debate alice (bob s b q) vera t).cost' o BobId ≤ (t+1) * samples ((b-s)/2) q := by
+theorem bob_debate_cost (alice : Alice ι) (vera : Vera ι) (f : Comp ι u Bool) :
+    (debate alice (bob s b q) vera f).cost' o BobId ≤ f.worst * samples ((b-s)/2) q := by
   simp only [debate, Comp.cost', Comp.cost_bind]
-  have e : ∀ x, ((t:ℝ) + 1) * samples x q = (t + 1) * samples x q + 0 := by
-    simp only [add_zero, forall_const]
-  rw [e]
+  rw [← add_zero (_ * _)]
   apply add_le_add
-  · rw [←Nat.cast_add_one]; apply bob_steps_cost
-  · refine exp_le_of_forall_le (fun y m ↦ ?_)
+  · apply bob_steps_cost
+  · refine exp_le_of_forall_le fun y _ ↦ ?_
     induction y; repeat simp only [Comp.cost_pure, le_refl]
 
 /-- Alice makes `O(k^2 t log t)` queries with default parameters -/
-theorem alice_fast (k : ℝ) (k0 : 0 < k) (t : ℕ) (bob : Bob) (vera : Vera) :
-    let p := defaults k t k0
-    (debate (alice p.c p.q) bob vera t).cost' o AliceId ≤
-      (t+1) * (5000 * k^2 * Real.log (200 * (t+1)) + 1) := by
-  refine le_trans (alice_debate_cost _ _ _ _) ?_
-  refine mul_le_mul_of_nonneg_left ?_ (by positivity)
-  simp only [defaults, samples, ← Real.log_inv]
-  generalize hn : (t+1 : ℝ) = n
-  field_simp
-  simp only [mul_pow, mul_div_assoc (Real.log _), mul_div_right_comm, mul_right_comm _ _ (2 : ℝ)]
-  norm_num
-  simp only [mul_comm (Real.log _)]
-  refine le_trans (Nat.ceil_lt_add_one ?_).le (le_refl _)
-  exact mul_nonneg (by positivity) (Real.log_nonneg (by linarith))
+theorem alice_fast (k : ℝ) (k0 : 0 < k) (f : Comp ι u Bool) (bob : Bob ι) (vera : Vera ι) :
+    let p := defaults k f.worst k0
+    (debate (alice p.c p.q) bob vera f).cost' o AliceId ≤
+      f.worst * (5000 * k^2 * Real.log (200 * f.worst) + 1) := by
+  refine le_trans (alice_debate_cost _ _ _) ?_
+  by_cases f0 : f.worst = 0
+  · simp only [f0, CharP.cast_eq_zero, zero_mul, Real.log_zero, zero_add, mul_one, le_refl]
+  · refine mul_le_mul_of_nonneg_left ?_ (by positivity)
+    have f1 : max 1 f.worst = f.worst := by omega
+    simp only [defaults, samples, ← Real.log_inv, f1]
+    generalize hn : (f.worst : ℝ) = n
+    have n1 : 1 ≤ n := by rw [← hn, Nat.one_le_cast]; omega
+    field_simp
+    simp only [mul_pow, mul_div_assoc (Real.log _), mul_div_right_comm, mul_right_comm _ _ (2 : ℝ)]
+    norm_num
+    simp only [mul_comm (Real.log _)]
+    refine le_trans (Nat.ceil_lt_add_one ?_).le (le_refl _)
+    exact mul_nonneg (by positivity) (Real.log_nonneg (by linarith))
 
 /-- Bob makes `O(k^2 t log t)` queries with default parameters -/
-theorem bob_fast (k : ℝ) (k0 : 0 < k) (t : ℕ) (alice : Alice) (vera : Vera) :
-    let p := defaults k t k0
-    (debate alice (bob p.s p.b p.q) vera t).cost' o BobId ≤
-      (t+1) * (20000 / 9 * k^2 * Real.log (200 * (t+1)) + 1) := by
+theorem bob_fast (k : ℝ) (k0 : 0 < k) (f : Comp ι u Bool) (alice : Alice ι) (vera : Vera ι) :
+    let p := defaults k f.worst k0
+    (debate alice (bob p.s p.b p.q) vera f).cost' o BobId ≤
+      f.worst * (20000 / 9 * k^2 * Real.log (200 * f.worst) + 1) := by
   generalize hd : (20000 / 9 : ℝ) = d
-  refine le_trans (bob_debate_cost _ _ _ _) ?_
-  refine mul_le_mul_of_nonneg_left ?_ (by positivity)
-  simp only [defaults, samples, ← Real.log_inv]
-  generalize hn : (t+1 : ℝ) = n
-  field_simp
-  simp only [mul_pow, mul_div_assoc (Real.log _), mul_div_right_comm, mul_right_comm _ _ (2 : ℝ)]
-  norm_num
-  simp only [hd, mul_comm (Real.log _)]
-  refine le_trans (Nat.ceil_lt_add_one ?_).le (le_refl _)
-  exact mul_nonneg (by positivity) (Real.log_nonneg (by linarith))
+  refine le_trans (bob_debate_cost _ _ _) ?_
+  by_cases f0 : f.worst = 0
+  · simp only [f0, CharP.cast_eq_zero, zero_mul, mul_zero, zero_add, mul_one, le_refl]
+  · refine mul_le_mul_of_nonneg_left ?_ (by positivity)
+    have f1 : max 1 f.worst = f.worst := by omega
+    simp only [defaults, samples, ← Real.log_inv, f1]
+    generalize hn : (f.worst : ℝ) = n
+    have n1 : 1 ≤ n := by rw [← hn, Nat.one_le_cast]; omega
+    field_simp
+    simp only [mul_pow, mul_div_assoc (Real.log _), mul_div_right_comm, mul_right_comm _ _ (2 : ℝ)]
+    norm_num
+    simp only [hd, mul_comm (Real.log _)]
+    refine le_trans (Nat.ceil_lt_add_one ?_).le (le_refl _)
+    exact mul_nonneg (by positivity) (Real.log_nonneg (by linarith))
 
 /-!
 ### Vera cost
@@ -152,53 +169,49 @@ cost calculation.
 -/
 
 /-- State for use by Vera at the end -/
-def StateV (n : ℕ) := Except (Σ n : ℕ, List.Vector Bool n × ℝ) (List.Vector Bool n)
+def StateV (ι α : Type) := Except (ι × ℝ) α
 
 /-- One step of the debate protocol, without Vera
     c and s are the completeness and soundness parameters of the verifier. -/
-def stepV (alice : Alice) (bob : Bob) (y : List.Vector Bool n) :
-    DComp {AliceId,BobId} (StateV (n+1)) := do
-  let p ← (alice _ y).allow (by subset)
-  if ←(bob _ y p).allow (by subset) then do  -- Bob accepts Alice's probability, so take the step
+def stepV (alice : Alice ι) (bob : Bob ι) (y : ι) : Comp ι {AliceId,BobId} (StateV ι Bool) := do
+  let p ← (alice y).allow (by subset)
+  if ← (bob y p).allow (by subset) then do  -- Bob accepts Alice's probability, so take the step
     let x ← bernoulli p  -- This is Figure 4, steps 2b,2c,2d, as a fixed part of the protocol
-    return .ok (y.cons x)
+    return .ok x
   else  -- Bob rejects, so we record verifier inputs and end the computation
-    return .error ⟨_,y,p⟩
+    return .error ⟨y,p⟩
 
 /-- `n` steps of the debate protocol, without Vera -/
-def stepsV (alice : Alice) (bob : Bob) : (n : ℕ) → DComp {AliceId,BobId} (StateV n)
-| 0 => pure (.ok .nil)
-| n+1 => do match ←stepsV alice bob n with
-  | .ok y => stepV alice bob y
+def stepsV (alice : Alice ι) (bob : Bob ι) : (f : Comp ι u α) → Comp ι {AliceId,BobId} (StateV ι α)
+| .pure' x => pure (.ok x)
+| .sample' p f => .sample' p fun y ↦ stepsV alice bob (f y)
+| .query' _ _ y f => do match ← stepV alice bob y with
+  | .ok x => stepsV alice bob (f x)
   | .error r => return .error r
 
 /-- Turn `StateV` into `State` with a Vera call -/
-def postV (vera : Vera) (x : StateV n) : DComp AllIds (State n) := match x with
+def postV (vera : Vera ι) (x : StateV ι α) : Comp ι AllIds (State α) := match x with
 | .ok y => return .ok y
-| .error ⟨_,y,p⟩ => return .error (←(vera _ y p).allow_all)
+| .error ⟨y,p⟩ => return .error (← (vera y p).allow_all)
 
 /-- Relate `stepsV` and `steps `-/
-lemma post_stepsV (alice : Alice) (bob : Bob) (vera : Vera) :
-    (stepsV alice bob n).allow_all >>= postV vera = steps alice bob vera n := by
-  induction' n with n h
-  · simp only [Comp.allow_all, stepsV, Comp.allow_pure, pure_bind, postV, steps]
-  · simp only [stepsV, Comp.allow_all_bind, bind_assoc, steps, ← h]
-    apply congr_arg₂ _ rfl ?_
-    ext x; induction' x with n y p
-    · simp only [Comp.allow_all_pure, postV, pure_bind, bind_assoc]
-    · simp only [stepV, Comp.sample'_bind, pure_bind, Comp.allow_all_bind, Comp.allow_all_allow,
-        bind_assoc, postV, step]
-      apply congr_arg₂ _ rfl ?_; ext p; apply congr_arg₂ _ rfl ?_; ext b
-      induction b
-      · simp only [ite_false, Comp.allow_all_pure, pure_bind, postV, Bool.false_eq_true]
-      · simp only [ite_true]
-        rw [Comp.allow_all, Comp.allow_bind, bind_assoc]
-        simp only [Comp.allow_sample, Comp.allow_pure, pure_bind, postV, bind_pure_comp]
+lemma post_stepsV (alice : Alice ι) (bob : Bob ι) (vera : Vera ι) (f : Comp ι u α) :
+    (stepsV alice bob f).allow_all >>= postV vera = steps alice bob vera f := by
+  induction' f with x n p g h i m y f h
+  · simp only [Comp.allow_all, stepsV, pure, Comp.allow_pure', Comp.pure'_bind, postV, steps]
+  · simp only [stepsV, Comp.allow_all_bind, bind_assoc, steps, ← h]; rfl
+  · simp only [stepsV, stepV, bind_pure_comp, bind_assoc, Comp.allow_all_bind,
+      Comp.allow_all_allow, steps, step, ← h]
+    apply congr_arg₂ _ rfl ?_; ext p
+    apply congr_arg₂ _ rfl ?_; ext x
+    induction x
+    all_goals simp only [↓reduceIte, Comp.allow_all_map, Comp.allow_all_sample, Comp.allow_all_pure,
+      bind_map_left, Comp.sample_bind, pure_bind, Bool.false_eq_true, postV, bind_pure_comp]
 
 /-- Vera makes few queries, regardless of Alice and Bob -/
-theorem vera_debate_cost (o : DOracle) (alice : Alice) (bob : Bob) (t : ℕ):
-    (debate alice bob (vera c s v) t).cost' o VeraId ≤ samples ((s-c)/2) v := by
-  have z : (stepsV alice bob (t+1)).cost (fun _ ↦ o) VeraId = 0 := by zero_cost
+theorem vera_debate_cost (alice : Alice ι) (bob : Bob ι) (f : Comp ι u Bool) :
+    (debate alice bob (vera c s v) f).cost' o VeraId ≤ samples ((s-c)/2) v := by
+  have z : (stepsV alice bob f).cost (fun _ ↦ o) VeraId = 0 := by zero_cost
   simp only [Comp.cost', debate, ← post_stepsV, bind_assoc, Comp.cost_bind, Comp.cost_allow_all, z,
     Comp.prob_allow_all, zero_add, ge_iff_le]
   refine exp_le_of_forall_le fun x _ ↦ ?_
@@ -221,10 +234,10 @@ lemma log_mul_le : Real.log 200 * 20000 ≤ 106000 := by
   norm_num
 
 /-- Vera makes `O(k^2)` queries with default parameters -/
-theorem vera_fast (k : ℝ) (k0 : 0 < k) (t : ℕ) (alice : Alice) (bob : Bob) :
-    let p := defaults k t k0
-    (debate alice bob (vera p.c p.s p.v) t).cost' o VeraId ≤ 106000 * k^2 + 1 := by
-  refine le_trans (vera_debate_cost _ _ _ _) ?_
+theorem vera_fast (k : ℝ) (k0 : 0 < k) (f : Comp ι u Bool) (alice : Alice ι) (bob : Bob ι) :
+    let p := defaults k f.worst k0
+    (debate alice bob (vera p.c p.s p.v) f).cost' o VeraId ≤ 106000 * k^2 + 1 := by
+  refine le_trans (vera_debate_cost _ _ _) ?_
   simp only [defaults, samples, ← Real.log_inv]
   field_simp
   refine le_trans (Nat.ceil_lt_add_one (by positivity)).le ?_

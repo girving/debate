@@ -16,7 +16,7 @@ variable {α β : Type}
 /-- We can only learn one bit per query about our oracle -/
 theorem Comp.I_le_cost (p : Prob (Oracle α)) (f : Comp α (univ : Set Unit) β) :
     (do let o ← p; let r ← f.prob' o; return (o, r)).I ≤ p.exp fun o ↦ f.cost' o () := by
-  induction' f with x β f g' h j m y f0 f1 h0 h1 generalizing p
+  induction' f with x β f g' h j m y f h generalizing p
   · simp only [prob', prob_pure', pure_bind, Prob.I_const, cost'_pure', Prob.exp_const, le_refl]
   · simp only [prob', prob_sample', bind_assoc, cost'_sample]
     refine le_trans (Prob.I_bind_le_exp' _ _ _) ?_
@@ -27,8 +27,5 @@ theorem Comp.I_le_cost (p : Prob (Oracle α)) (f : Comp α (univ : Set Unit) β)
     refine add_le_add (Prob.H_le_one _) ?_
     simp only [Prob.exp_when p (fun o ↦ o y)]
     refine Prob.exp_mono fun b _ ↦ ?_
-    induction' b
-    · simp only [Bool.false_eq_true, ↓reduceIte, Prob.exp_const]
-      apply h1
-    · simp only [Bool.false_eq_true, ↓reduceIte, Prob.exp_const]
-      apply h0
+    simp only [bind_pure_comp, Prob.exp_const]
+    apply h

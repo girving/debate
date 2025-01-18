@@ -48,3 +48,6 @@ def fin (p : Prob α) : Prob (Fin p.supp.card) :=
   simp only [fin, bind_map_left, prob_bind]
   refine exp_congr fun y py ↦ ?_
   simp only [ne_eq, py, not_false_eq_true, fromfin_tofin]
+
+@[simp] lemma fin_mem (p : Prob α) (x : Fin p.supp.card) : p.fromfin x ∈ p.supp := by
+  simp only [fromfin, Finset.coe_mem]

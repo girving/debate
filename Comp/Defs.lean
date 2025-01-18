@@ -32,7 +32,7 @@ inductive Comp (ι : Type) {I : Type} (s : Set I) (α : Type) : Type where
   /-- Sample a value with some probability distribution, then continue -/
   | sample' : {n : ℕ} → Prob (Fin n) → (Fin n → Comp ι s α) → Comp ι s α
   /-- Query an oracle `o ∈ s`, and branch on the result -/
-  | query' : (o : I) → o ∈ s → ι → Comp ι s α → Comp ι s α → Comp ι s α
+  | query' : (o : I) → o ∈ s → ι → (Bool → Comp ι s α) → Comp ι s α
 
 namespace Comp
 
@@ -40,7 +40,7 @@ namespace Comp
 def bind' (f : Comp ι s α) (g : α → Comp ι s β) : Comp ι s β := match f with
   | .pure' x => g x
   | .sample' p f => .sample' p (fun y ↦ (f y).bind' g)
-  | .query' o m y f0 f1 => .query' o m y (f0.bind' g) (f1.bind' g)
+  | .query' o m y f => .query' o m y fun x ↦ (f x).bind' g
 
 /-- `Comp` is a monad -/
 instance : Monad (Comp ι s) where
@@ -51,38 +51,36 @@ instance : Monad (Comp ι s) where
 def sample (p : Prob α) (f : α → Comp ι s β) : Comp ι s β :=
   .sample' p.fin (f ∘ p.fromfin)
 
-/-- `Prob`s are `Comp ι s` for any `s` -/
+/-- `Prob`s are `Comp`s -/
 instance : Coe (Prob α) (Comp ι s α) where
   coe p := .sample p pure
 
 /-- The simplest case of `Comp.query'` -/
 def query (i : I) (y : ι) : Comp ι {i} Bool :=
-  Comp.query' i (mem_singleton _) y (pure true) (pure false)
+  Comp.query' i (mem_singleton _) y pure
 
 /-- The value and query counts of a `Comp ι s`, once we supply oracles -/
 def run (f : Comp ι s α) (o : I → Oracle ι) : Prob (α × (I → ℕ)) := match f with
   | .pure' x => pure (x, fun _ => 0)
   | .sample' f g => f >>= fun x ↦ (g x).run o
-  | .query' i _ y f0 f1 => do
+  | .query' i _ y f => do
     let x ← (o i) y
-    let (z,c) ← if x then f0.run o else f1.run o
+    let (z,c) ← (f x).run o
     return (z, c + fun j => if j = i then 1 else 0)
 
-/-- The value of a `Comp ι s` -/
+/-- The value of a `Comp` -/
 def prob (f : Comp ι s α) (o : I → Oracle ι) : Prob α :=
   Prod.fst <$> f.run o
 
-/-- The value of a `Comp ι s` when all oracles are the same -/
+/-- The value of a `Comp` when all oracles are the same -/
 @[simp] def prob' (f : Comp ι s α) (o : Oracle ι) : Prob α :=
   f.prob fun _ ↦ o
 
-/-- The expected query cost of a `Comp ι α`.
-    There is a design decision here to make the theory about expected cost.  My guess is that
-    will make the downstream theory slightly easier. -/
+/-- The expected query cost of a `Comp` -/
 def cost (f : Comp ι s α) (o : I → Oracle ι) (i : I) : ℝ :=
   (f.run o).exp fun (_,c) ↦ c i
 
-/-- The expected query cost of a `Comp ι α` when all oracles are the same. -/
+/-- The expected query cost of a `Comp` when all oracles are the same. -/
 def cost' (f : Comp ι s α) (o : Oracle ι) : I → ℝ :=
   f.cost fun _ ↦ o
 
@@ -90,8 +88,15 @@ def cost' (f : Comp ι s α) (o : Oracle ι) : I → ℝ :=
 def allow (f : Comp ι s α) (st : s ⊆ t) : Comp ι t α := match f with
   | .pure' x => pure x
   | .sample' f g => sample' f fun x ↦ (g x).allow st
-  | .query' i m y f0 f1 => .query' i (st m) y (f0.allow st) (f1.allow st)
+  | .query' i m y f => .query' i (st m) y fun x ↦ (f x).allow st
 
 /-- Allow all oracles in a computation -/
 def allow_all (f : Comp ι s α) : Comp ι (@univ I) α :=
   f.allow (subset_univ s)
+
+/-- The worst-case query cost of a `Comp`.
+    For simplicity, we do not check for zero probabilities, so it is sometimes an overestimate. -/
+def worst (f : Comp ι s α) : ℕ := match f with
+| .pure' _ => 0
+| .sample' _ f => Finset.univ.sup fun x ↦ (f x).worst
+| .query' _ _ _ f => 1 + Finset.univ.sup fun x ↦ (f x).worst

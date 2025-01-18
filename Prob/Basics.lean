@@ -116,7 +116,7 @@ lemma map_prob_of_inj {f : α → β} (inj : f.Injective) (x : Prob α) (y : α)
     simp only [m, ↓reduceIte, smul_eq_mul, mul_one]
 
 /-- prob is in [0,1] -/
-lemma prob_le_one (f : Prob α) (x : α) : f.prob x ≤ 1 := by
+@[bound] lemma prob_le_one (f : Prob α) (x : α) : f.prob x ≤ 1 := by
   by_cases m : x ∈ f.supp
   · rw [←f.total, ←Finset.sum_singleton f.prob]
     apply Finset.sum_le_sum_of_subset_of_nonneg
@@ -159,8 +159,10 @@ lemma fintype_total (f : Prob α) [Fintype α] : (Finset.univ : Finset α).sum f
   intro x _ m; simp only [mem_iff, not_not] at m; exact m
 
 -- Boolean probabilities are complements
-lemma bool_total (f : Prob Bool) : f.prob true + f.prob false = 1 := by
+@[simp] lemma bool_total (f : Prob Bool) : f.prob true + f.prob false = 1 := by
   simpa only [Fintype.sum_bool] using f.fintype_total
+@[simp] lemma bool_total' (f : Prob Bool) : f.prob false + f.prob true = 1 := by
+  rw [add_comm, bool_total]
 lemma bool_prob_false_of_true {f : Prob Bool} : f.prob false = 1 - f.prob true := by
   apply eq_sub_of_add_eq; rw [add_comm]; exact f.bool_total
 lemma bool_prob_true_of_false {f : Prob Bool} : f.prob true = 1 - f.prob false :=
@@ -195,3 +197,24 @@ lemma card_supp_pos (p : Prob α) : 0 < p.supp.card := by
 @[simp] lemma supp_pure (x : α) : (pure x : Prob α).supp = {x} := by
   ext y
   simp [supp, prob_pure]
+
+/-- Pull a bind in the first part of an `if` to the outside -/
+lemma if_bind_comm {c : Prop} {h : Decidable c} (x : Prob α) (y : α → Prob β) (z : Prob β) :
+    ite c (h := h) (x >>= y) z = x >>= fun x ↦ ite c (h := h) (y x) z := by
+  by_cases p : c
+  all_goals simp only [p, ↓reduceIte, bind_const]
+
+/-!
+### Tactics
+-/
+
+/-- Move a `Prob` term to the front of a bind -/
+macro "lift" f:term : tactic =>
+  `(tactic| simp only [bind_comm _ $f, if_bind_comm $f])
+
+/-- Strip off a bind term -/
+macro "strip" x:term : tactic =>
+  `(tactic|
+  focus
+    refine congr_arg₂ _ rfl ?_
+    funext $x)

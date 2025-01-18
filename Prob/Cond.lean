@@ -64,6 +64,10 @@ lemma cond_eq_pr (q1 : f.pr q = 1) : f.cond p q = f.pr p := by
   simp only [cond, q1, div_one]; simp only [pr_eq_one] at q1
   apply pr_congr; intro x m; simp only [q1 x m, and_true]
 
+/-- Conditioning on true is just `pr` -/
+@[simp] lemma cond_true : f.cond p (fun _ ↦ True) = f.pr p := by
+  apply cond_eq_pr; simp only [pr_true]
+
 /-- cexp = 0 if the event never occurs for nonzero `u` -/
 lemma cexp_eq_zero (h : ∀ x, f.prob x ≠ 0 → q x → u x = 0) : f.cexp u q = 0 := by
   have z : (f.exp fun x => if q x then u x else 0) = 0 := by
@@ -355,3 +359,7 @@ lemma cexp_le_of_forall {b : ℝ} (h : ∀ x, f.prob x ≠ 0 → q x → v x ≤
   by_cases qx : q x
   · simp only [qx, ite_true, mul_one, h _ m qx]
   · simp only [qx, ite_false, mul_zero, le_refl]
+
+lemma cond_map {f : α → β} {g : Prob α} {p : β → Prop} {q : β → Prop} :
+    (f <$> g).cond p q = g.cond (fun y ↦ p (f y)) (fun y ↦ q (f y)) := by
+  simp only [cond, pr_map, ← exp_map]

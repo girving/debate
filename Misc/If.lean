@@ -4,7 +4,9 @@ import Mathlib.Data.Real.Basic
 # A few `if` utilities
 -/
 
-variable {α : Type*}
+universe u
+variable {α β : Type u}
+variable {m : Type u → Type u} [Monad m]
 
 /-- ↑x ≤ ↑y ↔ y → x -/
 lemma ite_le_ite_iff (x y : Prop) {dx : Decidable x} {dy : Decidable y} :
@@ -34,6 +36,12 @@ lemma bif_eq_if {b : Bool} {x y : α} : (bif b then x else y) = if b then x else
   induction b
   · simp only [cond_false, Bool.false_eq_true, ↓reduceIte]
   · simp only [cond_true, ↓reduceIte]
+
+/-- Push a bind inside an `if` -/
+lemma if_bind (c : Prop) (x y : m α) (z : α → m β) {h : Decidable c} :
+    ite c (h := h) x y >>= z = ite c (h := h) (x >>= z) (y >>= z) := by
+  by_cases p : c
+  all_goals simp only [p, ↓reduceIte]
 
 /-!
 ### Kronecker delta

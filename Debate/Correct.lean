@@ -11,24 +11,28 @@ open Prob
 open scoped Real
 noncomputable section
 
-variable {t : ℕ} {k : ℝ}
+variable {ι I : Type}
+variable {o : Oracle ι}
+variable {k : ℝ}
+variable {u : Set I}
+variable {f : Comp ι u Bool}
 
 /-- Completeness for any valid parameters -/
-theorem completeness (o : DOracle) (L : o.lipschitz t k) (eve : Bob)
-    {w d : ℝ} (p : Params w d k t) (m : w ≤ (o.final t).prob true) :
-    d ≤ ((debate (alice p.c p.q) eve (vera p.c p.s p.v) t).prob' o).prob true :=
-  completeness_p o L eve p m
+theorem completeness (L : f.lipschitz o k) (eve : Bob ι)
+    {w d : ℝ} (p : Params w d k f.worst) (m : w ≤ (f.prob' o).prob true) :
+    d ≤ ((debate (alice p.c p.q) eve (vera p.c p.s p.v) f).prob' o).prob true :=
+  completeness_p f L eve p m
 
 /-- Soundness for any valid parameters -/
-theorem soundness (o : DOracle) (L : o.lipschitz t k) (eve : Alice)
-    {w d : ℝ} (p : Params w d k t) (m : w ≤ (o.final t).prob false) :
-    d ≤ ((debate eve (bob p.s p.b p.q) (vera p.c p.s p.v) t).prob' o).prob false :=
-  soundness_p o L eve p m
+theorem soundness (L : f.lipschitz o k) (eve : Alice ι)
+    {w d : ℝ} (p : Params w d k f.worst) (m : w ≤ (f.prob' o).prob false) :
+    d ≤ ((debate eve (bob p.s p.b p.q) (vera p.c p.s p.v) f).prob' o).prob false :=
+  soundness_p f L eve p m
 
 /-- The debate protocol is correct with probability 3/5, using the default parameters -/
-theorem correctness (k : ℝ) (k0 : 0 < k) (t : ℕ) :
-    let p := defaults k t k0
-    Correct (3/5) k t (alice p.c p.q) (bob p.s p.b p.q) (vera p.c p.s p.v) where
+theorem correctness (k : ℝ) (k0 : 0 < k) :
+    let p := defaults k f.worst k0
+    Correct f (3/5) k (alice p.c p.q) (bob p.s p.b p.q) (vera p.c p.s p.v) where
   half_lt_w := by norm_num
-  complete o eve L m := completeness o L eve (defaults k t k0) m
-  sound o eve L m := soundness o L eve (defaults k t k0) m
+  complete o eve L m := completeness L eve (defaults k f.worst k0) m
+  sound o eve L m := soundness L eve (defaults k f.worst k0) m

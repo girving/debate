@@ -1,6 +1,7 @@
 import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Comp.Oracle
 import Comp.Defs
+import Comp.Lipschitz
+import Comp.Oracle
 import Prob.Bernoulli
 import Prob.Estimate
 
@@ -17,6 +18,8 @@ open Set
 noncomputable section
 
 variable {n : ℕ}
+variable {ι α I : Type}
+variable {s : Set I}
 
 /-- We distinguish debater and verify oracles so that we can measure cost separately
     for different agents.  We will plug in the same oracles in the end for all ids. -/
@@ -28,46 +31,42 @@ inductive OracleId where
 export OracleId (AliceId BobId VeraId)
 abbrev AllIds := @univ OracleId
 
--- Abbreviations fixing the oracle input type to `List Bool`
-abbrev DComp (s : Set OracleId) (α : Type) := Comp (List Bool) s α
-abbrev DOracle := Oracle (List Bool)
-
 -- Next, we give type signatures for Alice and Bob, and the protocol that connects them.
 -- See Figure 1 in the paper for the corresponding prose description.  We differ from Figure 1
 -- in that we treat steps (2b,2c,2d) as fixed parts of the protocol, rather than agent moves.
 
-/-- The state of a debate.  Either
-    1. An uninterrupted Vector Bool n trace, or
+/-- A state in a debate.  Either
+    1. An uninterrupted data value, or
     2. A final result if we rejected. -/
-def State (n : ℕ) := Except Bool (List.Vector Bool n)
+def State (α : Type) := Except Bool α
 
-/-- Alice takes the transcript so far and estimates a probability that the next step is 1.
-    Alice's goal is to produce output 1.  An honest Alice will try to mimic Oracle.fold. -/
-def Alice' (o : OracleId) := (n : ℕ) → List.Vector Bool n → DComp {o} ℝ
+/-- Alice takes the oracle input and estimates a probability that the oracle returns 1.
+    Alice's goal is to produce output 1. An honest Alice will try to mimic the oracle. -/
+def Alice' (ι : Type) (o : OracleId) := ι → Comp ι {o} ℝ
 
-/-- Alice using the normal `AliceId` -/
-def Alice := Alice' AliceId
+/-- Alice using the normal `AliceId`. This is the standard instantiation of Alice'
+    that will be used in most debate protocols. -/
+def Alice (ι : Type) := Alice' ι AliceId
 
-/-- Bob sees the transcript and Alice's claimed probability, and decides whether to continue.
-    Technically in Figure 4 Bob also sees the chosen bit, but this is irrelevant to the protocol.
-    In the game, Bob's goal is to produce output 0.  An honest Bob will yell iff Alice doesn't
-    mimic Oracle.fold. -/
-def Bob' (o : OracleId) := (n : ℕ) → List.Vector Bool n → ℝ → DComp {o} Bool
+/-- Bob sees the oracle input and Alice's claimed probability, and decides whether to continue.
+    In the game, Bob's goal is to produce output 0. An honest Bob will yell iff Alice doesn't
+    mimic the oracle. -/
+def Bob' (ι : Type) (o : OracleId) := ι → ℝ → Comp ι {o} Bool
 
 /-- Bob using the normal `BobId` -/
-def Bob := Bob' BobId
+def Bob (ι : Type) := Bob' ι BobId
 
 /-- Verifiers have an identical type signature to Bob, but use weaker parameters. -/
-def Vera := (n : ℕ) → List.Vector Bool n → ℝ → DComp {VeraId} Bool
+def Vera (ι : Type) := ι → ℝ → Comp ι {VeraId} Bool
 
 /-- Enough samples to estimate a probability with error < e with failure probability ≤ q -/
 def samples (e q : ℝ) : ℕ := Nat.ceil (-Real.log (q/2) / (2 * e^2))
 
 /-- Honest Alice estimates the correct probability within error < e with failure probability ≤ q -/
-def alice' (e q : ℝ) (o : OracleId) : Alice' o := λ _ y ↦
-  estimate (query o y.toList) (samples e q)
+def alice' (e q : ℝ) (o : OracleId) : Alice' ι o := fun y ↦
+  estimate (query o y) (samples e q)
 
-def alice (e q : ℝ) : Alice := alice' e q AliceId
+def alice (e q : ℝ) : Alice ι := alice' e q AliceId
 
 /-- Honest Bob checks the probability against an honest copy of Alice.
 
@@ -81,36 +80,37 @@ def alice (e q : ℝ) : Alice := alice' e q AliceId
     We want e as large as possible to reduce the number of samples.  This is achieved if
       r = (c + s) / 2
       e = (s - c) / 2 -/
-def bob' (c s q : ℝ) (o : OracleId) : Bob' o := λ _ y p ↦
-  return |p - (←alice' ((s-c)/2) q o _ y)| < (c+s)/2
+def bob' (c s q : ℝ) (o : OracleId) : Bob' ι o := fun y p ↦
+  return |p - (← alice' ((s-c)/2) q o y)| < (c+s)/2
 
-def bob (c s q : ℝ) : Bob := bob' c s q BobId
+def bob (c s q : ℝ) : Bob ι := bob' c s q BobId
 
 /-- The verifier checks the probability estimate given by Alice.
     We reuse Honest Bob with a weaker error probability, which we will set later. -/
-def vera (s v q : ℝ) : Vera := bob' s v q VeraId
+def vera (s v q : ℝ) : Vera ι := bob' s v q VeraId
 
-/-- One step of the debate protocol -/
-def step (alice : Alice) (bob : Bob) (vera : Vera) (y : List.Vector Bool n) :
-    DComp AllIds (State (n+1)) := do
-  let p ← (alice _ y).allow_all
-  if ←(bob _ y p).allow_all then do  -- Bob accepts Alice's probability, so take the step
+/-- One step of the debate protocol, simulating a single oracle query -/
+def step (alice : Alice ι) (bob : Bob ι) (vera : Vera ι) (y : ι) : Comp ι AllIds (State Bool) := do
+  let p ← (alice y).allow_all
+  if ← (bob y p).allow_all then do  -- Bob accepts Alice's probability, so take the step
     let x ← bernoulli p  -- This is Figure 4, steps 2b,2c,2d, as a fixed part of the protocol
-    return .ok (y.cons x)
+    return .ok x
   else  -- Bob rejects, so we call the verifier and end the computation
-    return .error (←(vera _ y p).allow_all)
+    return .error (←(vera y p).allow_all)
 
-/-- n steps of the debate protocol -/
-def steps (alice : Alice) (bob : Bob) (vera : Vera) : (n : ℕ) → DComp AllIds (State n)
-| 0 => pure (.ok .nil)
-| n+1 => do match ←steps alice bob vera n with
-  | .ok y => step alice bob vera y
+/-- Process a computation, replacing oracle queries with debate steps -/
+def steps (alice : Alice ι) (bob : Bob ι) (vera : Vera ι) : Comp ι s α → Comp ι AllIds (State α)
+| .pure' x => pure' (.ok x)
+| .sample' p f => .sample' p fun y ↦ steps alice bob vera (f y)
+| .query' _ _ y f => do match ← step alice bob vera y with
+  | .ok x => steps alice bob vera (f x)
   | .error r => return .error r
 
 /-- The full debate protocol that stitches these together -/
-def debate (alice : Alice) (bob : Bob) (vera : Vera) (t : ℕ) : DComp AllIds Bool := do
-  match ←steps alice bob vera (t+1) with
-  | .ok y => return y.head
+def debate (alice : Alice ι) (bob : Bob ι) (vera : Vera ι) (f : Comp ι s Bool) :
+    Comp ι AllIds Bool := do
+  match ← steps alice bob vera f with
+  | .ok y => return y
   | .error r => return r
 
 -- Next, we define what it means for the debate protocol to be correct.  The definition is
@@ -120,12 +120,13 @@ def debate (alice : Alice) (bob : Bob) (vera : Vera) (t : ℕ) : DComp AllIds Bo
 /-- The debate protocol is correct if, for all k-Lipschitz oracles o
     1. Whenever Pr(o.final) ≥ 2/3, Honest Alice beats any Bob (Eve) with probability w > 1/2
     2. Whenever Pr(o.final) ≤ 1/3, Honest Bob beats any Alice (Eve) with probability w > 1/2 -/
-structure Correct (w k : ℝ) (t : ℕ) (alice : Alice) (bob : Bob) (vera : Vera) : Prop where
+structure Correct (f : Comp ι s Bool) (w k : ℝ) (alice : Alice ι) (bob : Bob ι) (vera : Vera ι) :
+    Prop where
   /-- Success is more likely than failure -/
   half_lt_w : 1/2 < w
   /-- If we're in the language, Alice wins -/
-  complete : ∀ (o : DOracle) (eve : Bob), o.lipschitz t k → (o.final t).prob true ≥ 2/3 →
-    ((debate alice eve vera t).prob' o).prob true ≥ w
+  complete : ∀ (o : Oracle ι) (eve : Bob ι), f.lipschitz o k → 2/3 ≤ (f.prob' o).prob true →
+    w ≤ ((debate alice eve vera f).prob' o).prob true
   /-- If we're out of the language, Bob wins -/
-  sound : ∀ (o : DOracle) (eve : Alice), o.lipschitz t k → (o.final t).prob false ≥ 2/3 →
-    ((debate eve bob vera t).prob' o).prob false ≥ w
+  sound : ∀ (o : Oracle ι) (eve : Alice ι), f.lipschitz o k → 2/3 ≤ (f.prob' o).prob false →
+    w ≤ ((debate eve bob vera f).prob' o).prob false

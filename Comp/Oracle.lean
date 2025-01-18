@@ -1,16 +1,10 @@
-import Mathlib.Data.Vector.Defs
-import Mathlib.Topology.MetricSpace.Basic
 import Prob.Argmax
-import Prob.Basics
 import Prob.Bernoulli
 
 /-!
-Stochastic oracle as a model of general, randomized computations
+# Stochastic oracle for use in randomized computations
 
 We formalize debate w.r.t. randomized computations allowed to query a stochastic oracle.
-For simplicity, we embed all details of the computation as the oracle, including deterministic
-features.  Concretely, we start with zero bits, and repeatedly prepend bits from the oracle
-for some number of steps.  The final bit is the result.
 -/
 
 open Classical
@@ -24,8 +18,12 @@ variable {α : Type}
 /-- A stochastic oracle is a random map from `α → Bool` -/
 def Oracle (α : Type) := α → Prob Bool
 
+/-- The probability of true for an oracle -/
+def Oracle.prob (o : Oracle α) (x : α) : ℝ :=
+  (o x).prob true
+
 /-- n random bits from an oracle, each given by feeding the oracle the previous result.
-    This models an arbitrary computation, as o can behave differently based on input length. -/
+    This models an arbitrary computation, as `o` can behave differently based on input length. -/
 def Oracle.fold (o : Oracle (List Bool)) : (n : ℕ) → Prob (List.Vector Bool n)
 | 0 => pure .nil
 | n+1 => do
@@ -41,12 +39,6 @@ def Oracle.final (o : Oracle (List Bool)) (t : ℕ) : Prob Bool := do
 /-- The distance between two oracles is the sup of their probability differences -/
 instance : Dist (Oracle α) where
   dist o0 o1 := ⨆ y, |(o0 y).prob true - (o1 y).prob true|
-
-/-- An oracle computation is k-Lipschitz if the final probability differs by ≤ k * oracle dist.
-    We define this asymmetrically, as we want the neighborhood of a particular oracle. -/
-structure Oracle.lipschitz (o : Oracle (List Bool)) (t : ℕ) (k : ℝ) : Prop where
-  k0 : 0 ≤ k
-  le : ∀ o' : Oracle (List Bool), |(o.final t).prob true - (o'.final t).prob true| ≤ k * dist o o'
 
 /-- Deterministic oracles have probability 0 or 1, always -/
 def Oracle.Deterministic (o : Oracle α) : Prop :=

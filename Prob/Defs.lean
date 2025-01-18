@@ -55,7 +55,7 @@ def Prob.cexp (f : Prob α) (u : α → V) (q : α → Prop) : V :=
 
 namespace Prob
 
-attribute [simp] prob_nonneg
+attribute [simp, bound] prob_nonneg
 
 -- Basics
 lemma zero_iff {f : Prob α} {x : α} : f.prob x = 0 ↔ x ∉ f.supp := Finsupp.not_mem_support_iff.symm
