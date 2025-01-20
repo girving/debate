@@ -401,6 +401,15 @@ lemma cost_bind (f : Comp ι s α) (g : α → Comp ι s β) (o : I → Oracle �
   · simp only [worst, map_sample', h]
   · simp only [worst, map_query', h]
 
+/-- Version of `Finset.le_sup` that work inside `bound` -/
+@[bound] lemma _root_.Finset.le_univ_sup [Fintype α] (f : α → Comp ι u β) {x : α} :
+    (f x).worst ≤ Finset.univ.sup fun x ↦ (f x).worst := by
+  apply Finset.le_sup (Finset.mem_univ x)
+
+@[bound] lemma le_sample'_worst {p : Prob (Fin n)} {f : Fin n → Comp ι s β} {x : Fin n} :
+    (f x).worst ≤ (sample' p f).worst := by
+  apply Finset.le_sup (Finset.mem_univ x)
+
 end Comp
 
 /-!

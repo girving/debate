@@ -51,11 +51,6 @@ variable {y : ι}
 /-- TODO: Upstream -/
 @[bound] private alias ⟨_, Bound.nat_cast_le⟩ := Nat.cast_le
 
-/-- Version of `Finset.le_sup` that work inside `bound` -/
-@[bound] lemma Finset.le_univ_sup [Fintype α] (f : α → Comp ι u β) {x : α} :
-    (f x).worst ≤ Finset.univ.sup fun x ↦ (f x).worst := by
-  apply Finset.le_sup (Finset.mem_univ x)
-
 /-- Alice makes few queries, regardless of Bob and Vera -/
 lemma alice_steps_cost (bob : Bob ι) (vera : Vera ι) (f : Comp ι u α) :
     (steps (alice c q) bob vera f).cost (fun _ ↦ o) AliceId ≤ f.worst * samples c q := by

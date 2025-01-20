@@ -189,12 +189,12 @@ lemma trace_length_le (alice : Alice ι) (f : Comp ι u Bool) {t : List (ι × �
     simp only [p, List.length_nil, Comp.worst_pure', le_refl]
   · simp only [alices, prob_bind_ne_zero] at p
     obtain ⟨x,_,z⟩ := p
-    exact le_trans (h _ z) (by apply Finset.le_sup (Finset.mem_univ x))
+    exact le_trans (h _ z) (by bound)
   · simp only [alices, Comp.prob', prob_bind_ne_zero, prob_pure] at p
     obtain ⟨p,p0,b,b0,r,r0,e⟩ := p
     simp only [Prod.mk.injEq, ne_eq, ite_eq_right_iff, imp_false, Classical.not_imp, not_not] at e
     simp only [e, List.length_cons, Comp.worst_query', add_comm 1, add_le_add_iff_right]
-    exact le_trans (h _ r0) (by apply Finset.le_sup (Finset.mem_univ b))
+    exact le_trans (h _ r0) (by bound)
 
 /-!
 # Close probabilities
@@ -298,18 +298,14 @@ lemma alices_close (e0 : 0 < e) (q0 : 0 < q) (q1 : q ≤ 1) (f : Comp ι u α) :
   induction' f with x n p g h i m y f h
   · simp only [Comp.worst_pure', pow_zero, alices, pr_pure, List.Forall, ↓reduceIte, le_refl]
   · simp only [Comp.worst_sample', alices, pr_bind]
-    refine le_exp_of_forall_le fun x _ ↦ le_trans ?_ (h _)
-    refine pow_le_pow_of_le_one (by linarith) (by linarith) ?_
-    apply Finset.le_sup (Finset.mem_univ x)
+    exact le_exp_of_forall_le fun x _ ↦ le_trans (by bound) (h _)
   · simp only [Comp.worst_query', alices, pr_bind, pr_pure, List.forall_cons, ite_and_one_zero,
       exp_const_mul, add_comm 1, pow_succ']
     apply le_exp_of_cut (fun x ↦ o.close e (y,x)) (1 - q) ((1 - q) ^ _)
     · apply le_alice_pr o _ e0 q0
     · intro p _ c
       simp only [c, if_true, one_mul]
-      refine le_exp_of_forall_le fun x _ ↦ le_trans ?_ (h _)
-      refine pow_le_pow_of_le_one (by linarith) (by linarith) ?_
-      apply Finset.le_sup (Finset.mem_univ x)
+      exact le_exp_of_forall_le fun x _ ↦ le_trans (by bound) (h _)
     · bound
     · bound
 
