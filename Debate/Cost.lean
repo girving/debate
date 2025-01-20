@@ -137,8 +137,7 @@ theorem alice_fast (k : ℝ) (k0 : 0 < k) (f : Comp ι u Bool) (bob : Bob ι) (v
     simp only [mul_pow, mul_div_assoc (Real.log _), mul_div_right_comm, mul_right_comm _ _ (2 : ℝ)]
     norm_num
     simp only [mul_comm (Real.log _)]
-    refine le_trans (Nat.ceil_lt_add_one ?_).le (le_refl _)
-    exact mul_nonneg (by positivity) (Real.log_nonneg (by linarith))
+    exact (Nat.ceil_lt_add_one (by bound)).le
 
 /-- Bob makes `O(k^2 t log t)` queries with default parameters -/
 theorem bob_fast (k : ℝ) (k0 : 0 < k) (f : Comp ι u Bool) (alice : Alice ι) (vera : Vera ι) :
@@ -158,8 +157,7 @@ theorem bob_fast (k : ℝ) (k0 : 0 < k) (f : Comp ι u Bool) (alice : Alice ι) 
     simp only [mul_pow, mul_div_assoc (Real.log _), mul_div_right_comm, mul_right_comm _ _ (2 : ℝ)]
     norm_num
     simp only [hd, mul_comm (Real.log _)]
-    refine le_trans (Nat.ceil_lt_add_one ?_).le (le_refl _)
-    exact mul_nonneg (by positivity) (Real.log_nonneg (by linarith))
+    exact (Nat.ceil_lt_add_one (by bound)).le
 
 /-!
 ### Vera cost
@@ -202,8 +200,8 @@ lemma post_stepsV (alice : Alice ι) (bob : Bob ι) (vera : Vera ι) (f : Comp �
   · simp only [stepsV, Comp.allow_all_bind, bind_assoc, steps, ← h]; rfl
   · simp only [stepsV, stepV, bind_pure_comp, bind_assoc, Comp.allow_all_bind,
       Comp.allow_all_allow, steps, step, ← h]
-    apply congr_arg₂ _ rfl ?_; ext p
-    apply congr_arg₂ _ rfl ?_; ext x
+    strip p
+    strip x
     induction x
     all_goals simp only [↓reduceIte, Comp.allow_all_map, Comp.allow_all_sample, Comp.allow_all_pure,
       bind_map_left, Comp.sample_bind, pure_bind, Bool.false_eq_true, postV, bind_pure_comp]
@@ -225,13 +223,13 @@ theorem vera_debate_cost (alice : Alice ι) (bob : Bob ι) (f : Comp ι u Bool) 
     · simp only [Comp.cost_pure, Nat.cast_nonneg]
 
 /-- A calculation used in `vera_fast` -/
-lemma log_mul_le : Real.log 200 * 20000 ≤ 106000 := by
+@[bound] lemma log_mul_le : Real.log 200 * 20000 ≤ 106000 := by
   rw [← le_div_iff₀ (by norm_num), Real.log_le_iff_le_exp (by norm_num)]
   norm_num
   rw [← Real.exp_one_rpow, div_eq_mul_inv, Real.rpow_mul (by positivity),
     Real.le_rpow_inv_iff_of_pos (by norm_num) (by positivity) (by norm_num)]
-  refine le_trans ?_ (Real.rpow_le_rpow (by norm_num) Real.exp_one_gt_d9.le (by norm_num))
-  norm_num
+  refine le_trans ?_ (Real.rpow_le_rpow ?_ Real.exp_one_gt_d9.le ?_)
+  all_goals norm_num
 
 /-- Vera makes `O(k^2)` queries with default parameters -/
 theorem vera_fast (k : ℝ) (k0 : 0 < k) (f : Comp ι u Bool) (alice : Alice ι) (bob : Bob ι) :
@@ -243,5 +241,4 @@ theorem vera_fast (k : ℝ) (k0 : 0 < k) (f : Comp ι u Bool) (alice : Alice ι)
   refine le_trans (Nat.ceil_lt_add_one (by positivity)).le ?_
   simp only [mul_pow, mul_div_assoc (Real.log _), mul_div_right_comm, mul_right_comm _ _ (2 : ℝ)]
   norm_num [← mul_assoc]
-  refine mul_le_mul_of_nonneg_right ?_ (by positivity)
-  exact log_mul_le
+  bound

@@ -37,17 +37,15 @@ within the necessary failure probabilities.
 
 /-- samples' is samples without the Nat.ceil -/
 def samples' (e q : ℝ) : ℝ := -Real.log (q/2) / (2 * e^2)
-lemma le_samples (e q : ℝ) : samples' e q ≤ samples e q := Nat.le_ceil _
+@[bound] lemma le_samples (e q : ℝ) : samples' e q ≤ samples e q := Nat.le_ceil _
 
 /-- Honest Alice has error ≥ e with probability ≤ q -/
 lemma alice_pr_le (o : Oracle ι) (i : OracleId) (e0 : 0 < e) (q0 : 0 < q) (y : ι) :
     ((alice' e q i y).prob' o).pr (fun p ↦ e ≤ |p - (o y).prob true|) ≤ q := by
   simp only [alice', Comp.prob', Comp.prob_estimate, Comp.prob_query]
   refine le_trans (chernoff_estimate_abs_le (o y) (samples e q) (le_of_lt e0)) ?_
-  have le : -2 * ↑(samples e q) * e^2 ≤ -2 * samples' e q * e^2 :=
-    mul_le_mul_of_nonneg_right (mul_le_mul_of_nonpos_left (le_samples _ _) (by norm_num))
-      (sq_nonneg _)
-  refine le_trans (mul_le_mul_of_nonneg_left (Real.exp_le_exp.mpr le) (by norm_num)) ?_; clear le
+  have le : -2 * ↑(samples e q) * e^2 ≤ -2 * samples' e q * e^2 := by simp; bound
+  refine le_trans (mul_le_mul_of_nonneg_left (Real.exp_le_exp.mpr le) (by norm_num)) ?_
   simp only [samples', div_eq_inv_mul, ←mul_assoc, mul_inv]; norm_num
   simp only [mul_comm _ (e^2), ←mul_assoc, mul_inv_cancel₀ (pow_ne_zero _ (ne_of_gt e0)), one_mul]
   rw [Real.exp_log]; ring_nf; rfl; positivity
@@ -66,14 +64,16 @@ lemma bob_complete (o : Oracle ι) (i : OracleId) (cs : c < s) (q0 : 0 < q) {y :
     ((bob' c s q i y p).prob' o).prob false ≤ q := by
   simp only [bob', prob_bind, prob_pure, false_eq_decide_iff, not_lt, Comp.prob',
     Comp.prob_bind, Comp.prob_pure]
-  rw [←pr]
+  rw [← pr]
   refine le_trans (pr_mono ?_) (alice_pr_le o i (by linarith) q0 y)
-  intro b _ h; generalize hx : (o y).prob true = x; rw [hx] at good; clear hx
+  intro b _ h
+  generalize (o y).prob true = x at good
   have e : b - x = -((p - b) - (p - x)) := by abel
-  rw [e, abs_neg]; refine le_trans ?_ (abs_sub_abs_le_abs_sub _ _)
+  rw [e, abs_neg]
+  refine le_trans ?_ (abs_sub_abs_le_abs_sub _ _)
   calc (s - c) / 2
     _ ≤ (c + s) / 2 - c := by linarith
-    _ ≤ |p - b| - |p - x| := sub_le_sub h good
+    _ ≤ |p - b| - |p - x| := by bound
 
 /-- Honest Bob usually accepts if Alice is off by ≤ c -/
 lemma bob_complete' (o : Oracle ι) (i : OracleId) (cs : c < s) (q0 : 0 < q) {y : ι}
@@ -89,11 +89,13 @@ lemma bob_sound (o : Oracle ι) (i : OracleId) (cs : c < s) (q0 : 0 < q) {y : ι
   rw [bool_prob_false_of_true, sub_le_sub_iff_left]
   simp only [bob', prob_bind, prob_pure, true_eq_decide_iff, not_lt, Comp.prob',
     Comp.prob_bind, Comp.prob_pure]
-  rw [←pr]
+  rw [← pr]
   refine le_trans (pr_mono ?_) (alice_pr_le o i (by linarith) q0 y)
-  intro b _ h; generalize hx : (o y).prob true = x; rw [hx] at bad; clear hx
+  intro b _ h
+  generalize (o y).prob true = x at bad
   have e : b - x = (p - x) - (p - b) := by abel
-  rw [e]; refine le_trans ?_ (abs_sub_abs_le_abs_sub _ _)
+  rw [e]
+  refine le_trans ?_ (abs_sub_abs_le_abs_sub _ _)
   calc (s - c) / 2
     _ ≤ s - (c + s) / 2 := by linarith
     _ ≤ |p - x| - |p - b| := sub_le_sub bad (le_of_lt h)
@@ -190,8 +192,7 @@ lemma trace_length_le (alice : Alice ι) (f : Comp ι u Bool) {t : List (ι × �
     exact le_trans (h _ z) (by apply Finset.le_sup (Finset.mem_univ x))
   · simp only [alices, Comp.prob', prob_bind_ne_zero, prob_pure] at p
     obtain ⟨p,p0,b,b0,r,r0,e⟩ := p
-    simp only [Prod.mk.injEq, ne_eq, ite_eq_right_iff, one_ne_zero, imp_false, not_and,
-      Classical.not_imp, Decidable.not_not] at e
+    simp only [Prod.mk.injEq, ne_eq, ite_eq_right_iff, imp_false, Classical.not_imp, not_not] at e
     simp only [e, List.length_cons, Comp.worst_query', add_comm 1, add_le_add_iff_right]
     exact le_trans (h _ r0) (by apply Finset.le_sup (Finset.mem_univ b))
 
@@ -220,14 +221,14 @@ lemma snap_dist (alice : Alice ι) (e0 : 0 < e) : dist o (snap o alice e) ≤ e 
   refine Real.sSup_le (fun p ↦ ?_) e0.le
   simp only [mem_range, forall_exists_index]; intro y h; rw [←h]; clear h
   simp only [snap, prob_bind, abs_le]; constructor
-  · rw [le_sub_iff_add_le, add_comm, ←sub_eq_add_neg, sub_le_iff_le_add]
-    apply exp_le_of_forall_le; intro q _; simp only [bernoulli_prob_true']
-    apply max_le (add_nonneg (prob_nonneg _) (le_of_lt e0)); apply min_le_of_right_le
-    split_ifs with h; linarith [h.1]; linarith
-  · rw [sub_le_iff_le_add, add_comm, ←sub_le_iff_le_add]
-    apply le_exp_of_forall_le; intro q _; simp only [bernoulli_prob_true']
-    apply le_max_of_le_right; apply le_min; linarith [prob_le_one (o y) true]
-    split_ifs with h; linarith; linarith
+  · rw [le_sub_iff_add_le, add_comm, ← sub_eq_add_neg, sub_le_iff_le_add]
+    refine exp_le_of_forall_le fun _ _ ↦ ?_
+    simp only [bernoulli_prob_true']
+    bound
+  · rw [sub_le_iff_le_add, add_comm, ← sub_le_iff_le_add]
+    refine le_exp_of_forall_le fun _ _ ↦ ?_
+    simp only [bernoulli_prob_true']
+    bound [prob_le_one (o y) true]
 
 /-- All of Alice's moves, but with probabilities snapped to close when sampling -/
 def snaps (o : Oracle ι) (alice : Alice ι) (e : ℝ) : Comp ι u α → Prob (List (ι × ℝ) × α)
@@ -324,11 +325,11 @@ lemma alices_success (f : Comp ι u Bool) (L : f.lipschitz o k)
       simp only [sub_le_iff_le_add, add_comm _ (k * e)] at lip ⊢
       exact le_trans lip (add_le_add_right (mul_le_mul_of_nonneg_left (snap_dist _ e0) L.k0) _)
     · apply le_of_eq; simp only [←snaps_eq_snap_final, prob_map]
-      apply pr_congr; intro _ _; rfl
+      apply pr_congr; aesop
   · simp only [sub_le_iff_le_add]
     rw [pr_eq_add_of_cut (fun (t,z) => t.Forall (o.close e))]
     apply add_le_add
-    · apply exp_mono';
+    · apply exp_mono'
       intro (t,z)
       by_cases c : t.Forall (o.close e)
       · simp only [c, true_and, if_false, add_zero, snaps_prob _ c, and_true, le_refl]
@@ -353,7 +354,6 @@ lemma evil_bobs_lies' (eve : Bob ι) (cs : c < s) (v0 : 0 < v) (tc : t.Forall (o
   · simp only [bobs, cond_pure, reduceCtorEq, Option.isSome_none, Bool.false_eq_true, and_self,
       ↓reduceIte, v0']
   · simp only [List.forall_cons] at tc
-    simp only [bobs]
     refine le_trans (cond_bind_le_of_cut (fun b : Bool ↦ b)) (max_le ?_ ?_)
     · apply cond_bind_le_second (fun r ↦ r = some false) (fun r ↦ r.isSome) (fun b ↦ b = true) v0'
       intro b _ be
@@ -389,7 +389,8 @@ theorem completeness' (f : Comp ι u Bool) (L : f.lipschitz o k) (eve : Bob ι)
   simp only [debate_eq_transposed, transposed, trace, map_bind, ← pr_eq_prob]
   refine le_trans ?_ (le_pr_bind_of_cut _ (1-v) (alices_success f L c0 q0 q1) ?_ ?_)
   · simp only [mul_comm _ (1-v), pr_eq_prob, le_refl]
-  · intro ⟨t,z⟩ _ h; simp only [pr_map] at h ⊢
+  · intro ⟨t,z⟩ _ h
+    simp only [pr_map] at h ⊢
     have b : (bobs o eve (vera c s v) t).pr (fun r ↦ ¬extract ((t,z),r) = true) ≤ v := by
       simp only [Bool.not_eq_true, h.2]
       exact evil_bobs_lies eve cs v0 h.1
@@ -465,7 +466,7 @@ lemma bob_safe (cs : c < s) (sb : s < b) (q0 : 0 < q) (v0 : 0 < v) (v1 : v ≤ 1
     simp only [bool_prob_true_of_false, ha, mul_comm (1 - a)]
     trans a * (1 - v) * r + (1 - v) * r * (1 - a)
     · simp only [mul_assoc a, mul_comm a (_ * _), ← mul_add, add_sub_cancel, mul_one]
-      exact mul_le_of_le_one_right (by bound) (by linarith)
+      bound
     · have vs : 1 - v ≤ ((vera c s v y p).prob fun x ↦ o).prob false :=
         bob_sound o VeraId cs v0 (not_le.mp ys).le
       refine add_le_add (le_trans (mul_le_of_le_one_right ?_ ?_) ?_) ?_
@@ -606,6 +607,10 @@ structure Params (w d k : ℝ) (t : ℕ) where
   /-- Inequality sufficient for soundness -/
   sound : d ≤ (1-v) * (1 - q * t) * (w - k * b)
 
+-- Register `Params` fields for use with `bound`
+attribute [bound_forward] Params.k0 Params.c0 Params.cs Params.sb Params.q0 Params.q1 Params.v0
+  Params.v1 Params.qv Params.bw
+
 /-- Completeness for any valid parameters -/
 theorem completeness_p (f : Comp ι u Bool) (L : f.lipschitz o k) (eve : Bob ι)
     {w d : ℝ} (p : Params w d k f.worst) (m : w ≤ (f.prob' o).prob true) :
@@ -626,10 +631,10 @@ theorem soundness_p (f : Comp ι u Bool) (L : f.lipschitz o k) (eve : Alice ι)
   refine mul_le_mul_of_nonneg_left (mul_le_mul ?_ ?_ ?_ ?_) (by linarith [p.v1])
   · rw [mul_comm, sub_eq_add_neg, ← mul_neg]
     apply one_add_mul_le_pow
-    linarith [p.q1]
+    bound
   · apply add_le_add_right m
-  · linarith [p.bw]
-  · apply pow_nonneg; linarith [p.q1]
+  · bound
+  · bound
 
 lemma t_div_le_one (t : ℕ) : (t : ℝ) / max 1 t ≤ 1 := by bound
 
@@ -641,11 +646,11 @@ def defaults (k : ℝ) (t : ℕ) (k0 : 0 < k) : Params (2/3) (3/5) k t where
   b := 5 / (100 * k)
   q := 1 / (100 * max 1 t)
   k0 := k0
-  cs := by rw [div_lt_div_iff_of_pos_right]; norm_num; positivity
-  sb := by rw [div_lt_div_iff_of_pos_right]; norm_num; positivity
+  cs := by bound
+  sb := by bound
   v1 := by norm_num
-  q1 := by bound [t_div_le_one t]
-  qv := by bound [t_div_le_one t]
+  q1 := by bound
+  qv := by bound
   bw := by
     simp only [div_eq_mul_inv, mul_inv, ←mul_assoc, mul_comm _ k⁻¹, inv_mul_cancel₀ (ne_of_gt k0)]
     norm_num
