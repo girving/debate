@@ -51,11 +51,8 @@ variable {y : ι}
 /-- TODO: Upstream -/
 @[bound] private alias ⟨_, Bound.nat_cast_le⟩ := Nat.cast_le
 
--- Version of `Finset.le_sup` that work inside `bound`
-@[bound] lemma Finset.le_univ_fin_sup (f : Fin n → Comp ι u α) {x : Fin n} :
-    (f x).worst ≤ Finset.univ.sup fun x ↦ (f x).worst := by
-  apply Finset.le_sup (Finset.mem_univ x)
-@[bound] lemma Finset.le_univ_bool_sup (f : Bool → Comp ι u α) {x : Bool} :
+/-- Version of `Finset.le_sup` that work inside `bound` -/
+@[bound] lemma Finset.le_univ_sup [Fintype α] (f : α → Comp ι u β) {x : α} :
     (f x).worst ≤ Finset.univ.sup fun x ↦ (f x).worst := by
   apply Finset.le_sup (Finset.mem_univ x)
 
