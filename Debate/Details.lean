@@ -320,8 +320,8 @@ lemma alices_success (f : Comp ι u Bool) (L : f.lipschitz o k)
     · have lip := (abs_le.mp (L.le (snap o (alice e q) e) true)).2
       simp only [sub_le_iff_le_add, add_comm _ (k * e)] at lip ⊢
       exact le_trans lip (add_le_add_right (mul_le_mul_of_nonneg_left (snap_dist _ e0) L.k0) _)
-    · apply le_of_eq; simp only [←snaps_eq_snap_final, prob_map]
-      apply pr_congr; aesop
+    · simp only [← snaps_eq_snap_final, prob_map]
+      apply pr_mono; aesop
   · simp only [sub_le_iff_le_add]
     rw [pr_eq_add_of_cut (fun (t,z) => t.Forall (o.close e))]
     apply add_le_add
