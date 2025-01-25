@@ -3,6 +3,7 @@ import Debate.Protocol
 import Prob.Arith
 import Prob.Chernoff
 import Prob.Cond
+import Prob.Jensen
 import Mathlib.Tactic.Bound
 import Misc.Finset
 import Misc.If
@@ -23,7 +24,7 @@ noncomputable section
 
 variable {ι α β I : Type}
 variable {i : OracleId}
-variable {o : Oracle ι}
+variable {o : BOracle ι}
 variable {k c s b e p q v : ℝ}
 variable {u : Set I}
 variable {t : List (ι × ℝ)}  -- Trace of oracle calls and Alice's claimed probabilities
@@ -40,7 +41,7 @@ def samples' (e q : ℝ) : ℝ := -Real.log (q/2) / (2 * e^2)
 @[bound] lemma le_samples (e q : ℝ) : samples' e q ≤ samples e q := Nat.le_ceil _
 
 /-- Honest Alice has error ≥ e with probability ≤ q -/
-lemma alice_pr_le (o : Oracle ι) (i : OracleId) (e0 : 0 < e) (q0 : 0 < q) (y : ι) :
+lemma alice_pr_le (o : BOracle ι) (i : OracleId) (e0 : 0 < e) (q0 : 0 < q) (y : ι) :
     ((alice' e q i y).prob' o).pr (fun p ↦ e ≤ |p - (o y).prob true|) ≤ q := by
   simp only [alice', Comp.prob', Comp.prob_estimate, Comp.prob_query]
   refine le_trans (chernoff_estimate_abs_le (o y) (samples e q) (le_of_lt e0)) ?_
@@ -52,14 +53,14 @@ lemma alice_pr_le (o : Oracle ι) (i : OracleId) (e0 : 0 < e) (q0 : 0 < q) (y : 
 
 /-- Honest Alice has error ≤ e with probability ≥ 1 - q
     < e is also true, but annoying to work with later. -/
-lemma le_alice_pr (o : Oracle ι) (i : OracleId) (e0 : 0 < e) (q0 : 0 < q) (y : ι) :
+lemma le_alice_pr (o : BOracle ι) (i : OracleId) (e0 : 0 < e) (q0 : 0 < q) (y : ι) :
     1 - q ≤ ((alice' e q i y).prob' o).pr (fun p ↦ |p - (o y).prob true| ≤ e) := by
   trans ((alice' e q i y).prob' o).pr (fun p ↦ |p - (o y).prob true| < e)
   · rw [pr_neg']; simp only [not_lt]; linarith [alice_pr_le o i e0 q0 y]
   · apply pr_mono; intro _ _ h; exact le_of_lt h
 
 /-- Honest Bob usually accepts if Alice is off by ≤ c -/
-lemma bob_complete (o : Oracle ι) (i : OracleId) (cs : c < s) (q0 : 0 < q) {y : ι}
+lemma bob_complete (o : BOracle ι) (i : OracleId) (cs : c < s) (q0 : 0 < q) {y : ι}
     (good : |p - (o y).prob true| ≤ c) :
     ((bob' c s q i y p).prob' o).prob false ≤ q := by
   simp only [bob', prob_bind, prob_pure, false_eq_decide_iff, not_lt, Comp.prob',
@@ -76,14 +77,14 @@ lemma bob_complete (o : Oracle ι) (i : OracleId) (cs : c < s) (q0 : 0 < q) {y :
     _ ≤ |p - b| - |p - x| := by bound
 
 /-- Honest Bob usually accepts if Alice is off by ≤ c -/
-lemma bob_complete' (o : Oracle ι) (i : OracleId) (cs : c < s) (q0 : 0 < q) {y : ι}
+lemma bob_complete' (o : BOracle ι) (i : OracleId) (cs : c < s) (q0 : 0 < q) {y : ι}
     (good : |p - (o y).prob true| ≤ c) :
     1 - q ≤ ((bob' c s q i y p).prob' o).prob true := by
   rw [bool_prob_true_of_false]
   linarith [bob_complete o i cs q0 good]
 
 /-- Honest Bob usually rejects if Alice is off by ≥ s -/
-lemma bob_sound (o : Oracle ι) (i : OracleId) (cs : c < s) (q0 : 0 < q) {y : ι}
+lemma bob_sound (o : BOracle ι) (i : OracleId) (cs : c < s) (q0 : 0 < q) {y : ι}
     (bad : |p - (o y).prob true| ≥ s) :
     1 - q ≤ ((bob' c s q i y p).prob' o).prob false := by
   rw [bool_prob_false_of_true, sub_le_sub_iff_left]
@@ -109,7 +110,7 @@ form where Alice moves first, then Bob moves.
 -/
 
 /-- All of Alice's moves, and the resulting trace -/
-def alices (o : Oracle ι) (alice : Alice ι) : Comp ι u α → Prob (List (ι × ℝ) × α)
+def alices (o : BOracle ι) (alice : Alice ι) : BComp ι u α → Prob (List (ι × ℝ) × α)
   | .pure' x => pure (.nil, x)
   | .sample' p g => do
     let x ← p
@@ -121,7 +122,7 @@ def alices (o : Oracle ι) (alice : Alice ι) : Comp ι u α → Prob (List (ι 
     return ((y,q) :: t, z)
 
 /-- All of Bob's moves, after Alice's, producing an optional early exit -/
-def bobs (o : Oracle ι) (bob : Bob ι) (vera : Vera ι) : List (ι × ℝ) → Prob (Option Bool)
+def bobs (o : BOracle ι) (bob : Bob ι) (vera : Vera ι) : List (ι × ℝ) → Prob (Option Bool)
   | [] => pure none
   | (y,q) :: t => do
     let b ← (bob y q).prob' o
@@ -130,7 +131,7 @@ def bobs (o : Oracle ι) (bob : Bob ι) (vera : Vera ι) : List (ι × ℝ) → 
     else return some v
 
 /-- All of Alice's moves prior to Bob's, producing the full trace and an optional early exit -/
-def trace (o : Oracle ι) (alice : Alice ι) (bob : Bob ι) (vera : Vera ι) (f : Comp ι u α) :
+def trace (o : BOracle ι) (alice : Alice ι) (bob : Bob ι) (vera : Vera ι) (f : BComp ι u α) :
     Prob ((List (ι × ℝ) × α) × Option Bool) := do
   let a ← alices o alice f
   Prod.mk a <$> bobs o bob vera a.1
@@ -142,8 +143,8 @@ def extract (x : (List (ι × ℝ) × Bool) × Option Bool) : Bool :=
   | some r => r
 
 /-- debate, with all of Alice's moves prior to Bob's, and producing the full trace -/
-def transposed (o : Oracle ι) (alice : Alice ι) (bob : Bob ι) (vera : Vera ι) (f : Comp ι u Bool) :
-    Prob Bool :=
+def transposed (o : BOracle ι) (alice : Alice ι) (bob : Bob ι) (vera : Vera ι)
+    (f : BComp ι u Bool) : Prob Bool :=
   extract <$> trace o alice bob vera f
 
 /-- Shim to turn alices >>= bobs into steps -/
@@ -152,9 +153,9 @@ def shim (y : α) : Option Bool → State α
 | none => .ok y
 
 /-- The transposed formulation of debate is the same -/
-lemma debate_eq_transposed (o : Oracle ι) (alice : Alice ι) (bob : Bob ι) (vera : Vera ι)
-    (f : Comp ι u Bool) : (debate alice bob vera f).prob' o = transposed o alice bob vera f := by
-  have h : ∀ (α : Type) (f : Comp ι u α), (steps alice bob vera f).prob (fun _ ↦ o) =
+lemma debate_eq_transposed (o : BOracle ι) (alice : Alice ι) (bob : Bob ι) (vera : Vera ι)
+    (f : BComp ι u Bool) : (debate alice bob vera f).prob' o = transposed o alice bob vera f := by
+  have h : ∀ (α : Type) (f : BComp ι u α), (steps alice bob vera f).prob (fun _ ↦ o) =
       alices o alice f >>= fun (t,y) ↦ shim y <$> bobs o bob vera t := by
     intro α f
     induction f with
@@ -181,7 +182,7 @@ lemma debate_eq_transposed (o : Oracle ι) (alice : Alice ι) (bob : Bob ι) (ve
   | none => simp only [shim, pure_bind, Option.getD, Comp.prob_pure]
 
 /-- Traces are at most `f.worst` long -/
-lemma trace_length_le (alice : Alice ι) (f : Comp ι u Bool) {t : List (ι × ℝ) × Bool}
+lemma trace_length_le (alice : Alice ι) (f : BComp ι u Bool) {t : List (ι × ℝ) × Bool}
     (p : (alices o alice f).prob t ≠ 0) : t.1.length ≤ f.worst := by
   induction' f with x n p g h i m y f h generalizing t
   · simp only [alices, prob_pure, Prod.mk.injEq, ne_eq, ite_eq_right_iff, one_ne_zero, imp_false,
@@ -205,11 +206,11 @@ only moderately.
 -/
 
 /-- Closeness of a trace to an oracle -/
-def Oracle.close (o : Oracle ι) (e : ℝ) (yp : ι × ℝ) : Prop :=
+def Oracle.close (o : BOracle ι) (e : ℝ) (yp : ι × ℝ) : Prop :=
   |yp.2 - o.prob yp.1| ≤ e
 
 /-- Snap an Alice into a close oracle -/
-def snap (o : Oracle ι) (alice : Alice ι) (e : ℝ) : Oracle ι := fun y ↦ do
+def snap (o : BOracle ι) (alice : Alice ι) (e : ℝ) : BOracle ι := fun y ↦ do
   let p ← (alice y).prob' o
   let q := (o y).prob true
   let p := if |p - q| ≤ e then p else q
@@ -218,22 +219,31 @@ def snap (o : Oracle ι) (alice : Alice ι) (e : ℝ) : Oracle ι := fun y ↦ d
 /-- Snap produces a close oracle -/
 lemma snap_dist (alice : Alice ι) (e0 : 0 < e) : dist o (snap o alice e) ≤ e := by
   simp only [dist]
-  refine Real.sSup_le (fun p ↦ ?_) e0.le
-  simp only [mem_range, forall_exists_index]; intro y h; rw [←h]; clear h
-  simp only [snap, prob_bind, abs_le]; constructor
-  · rw [le_sub_iff_add_le, add_comm, ← sub_eq_add_neg, sub_le_iff_le_add]
-    refine exp_le_of_forall_le fun _ _ ↦ ?_
-    simp only [bernoulli_prob_true']
-    bound
-  · rw [sub_le_iff_le_add, add_comm, ← sub_le_iff_le_add]
-    refine le_exp_of_forall_le fun _ _ ↦ ?_
-    simp only [bernoulli_prob_true']
-    bound [prob_le_one (o y) true]
+  refine Real.sSup_le (fun _ ↦ ?_) e0.le
+  simp only [mem_range, forall_exists_index]
+  intro y h; rw [← h]; clear h
+  refine Real.sSup_le (fun _ ↦ ?_) e0.le
+  simp only [mem_range, forall_exists_index]
+  intro x h; rw [← h]; clear h
+  simp only [snap, prob_bind, ← Prob.exp_const_sub]
+  nth_rw 1[← Real.norm_eq_abs]
+  refine le_trans (map_exp_le _ convexOn_univ_norm (by aesop)) ?_
+  refine exp_le_of_forall_le fun q _ ↦ ?_
+  simp only [Real.norm_eq_abs,bool_abs_prob_diff true, bernoulli_prob_true', max_comm (0 : ℝ),
+    min_comm (1 : ℝ)]
+  have m : (o y).prob true = (o y).prob true ⊓ 1 ⊔ 0 := by
+    simp only [min_eq_left, max_eq_left, prob_nonneg, prob_le_one]
+  nth_rw 1 [m]
+  refine le_trans (abs_max_sub_max_le_abs _ _ _) (le_trans (abs_min_sub_min_le_max _ _ _ _) ?_)
+  simp only [sub_self, abs_zero, abs_nonneg, sup_of_le_left]
+  split_ifs with h
+  · rwa [← abs_neg, neg_sub]
+  · simp only [sub_self, abs_zero, e0.le]
 
 /-- All of Alice's moves, but with probabilities snapped to close when sampling -/
-def snaps (o : Oracle ι) (alice : Alice ι) (e : ℝ) : Comp ι u α → Prob (List (ι × ℝ) × α)
+def snaps (o : BOracle ι) (alice : Alice ι) (e : ℝ) : BComp ι u α → Prob (List (ι × ℝ) × α)
 | .pure' x => pure (.nil, x)
-| .sample' p f => do snaps o alice e (f (← p))
+| .sample' p g => do snaps o alice e (g (← p))
 | .query' _ _ y f => do
   let q ← (alice y).prob' o
   let c := (o y).prob true
@@ -243,7 +253,7 @@ def snaps (o : Oracle ι) (alice : Alice ι) (e : ℝ) : Comp ι u α → Prob (
 
 /-- Snapping doesn't changed prob for close p -/
 lemma snaps_prob (alice : Alice ι) {z : α} (c : t.Forall (o.close e))
-    (f : Comp ι u α) : (snaps o alice e f).prob (t,z) = (alices o alice f).prob (t,z) := by
+    (f : BComp ι u α) : (snaps o alice e f).prob (t,z) = (alices o alice f).prob (t,z) := by
   induction' f with x n p g h i m y f h generalizing t
   · simp only [snaps, alices]
   · simp only [snaps, prob_bind, h _ c, alices]
@@ -254,15 +264,16 @@ lemma snaps_prob (alice : Alice ι) {z : α} (c : t.Forall (o.close e))
     | (w,q) :: t =>
       by_cases e : y = w ∧ p = q
       · simp only [List.forall_cons, Oracle.close, Oracle.prob] at c
+        rw [e.1]
         simp only [e, c.1, ↓reduceIte, Prod.mk.injEq, List.cons.injEq, true_and]
-        simp only [← Prod.mk.injEq, pr_eq_prob, h _ c.2]
+        simp [← Prod.mk.injEq, pr_eq_prob, h _ c.2]
       · simp only [e, Prod.mk.injEq, List.cons.injEq, and_true, false_and, pr_false, exp_const]
 
 /-- Final result of snaps -/
 def final (x : List (ι × ℝ) × α) : α := x.2
 
 /-- As an oracle, snaps looks like snap (fold version) -/
-lemma snaps_eq_snap_fold (alice : Alice ι) (f : Comp ι u α) :
+lemma snaps_eq_snap_fold (alice : Alice ι) (f : BComp ι u α) :
     Prod.snd <$> snaps o alice e f = f.prob' (snap o alice e) := by
   induction' f with x n p g h i m y f h
   · simp only [snaps, map_pure, Comp.prob', Comp.prob_pure']
@@ -271,7 +282,7 @@ lemma snaps_eq_snap_fold (alice : Alice ι) (f : Comp ι u α) :
       snap, bind_assoc]
 
 /-- As an oracle, snaps looks like snap (final version) -/
-lemma snaps_eq_snap_final (alice : Alice ι) (f : Comp ι u α) :
+lemma snaps_eq_snap_final (alice : Alice ι) (f : BComp ι u α) :
     final <$> snaps o alice e f = f.prob' (snap o alice e) := by
   simp only [final, ← snaps_eq_snap_fold, map_eq]
 
@@ -293,7 +304,7 @@ We prove all intermediate theorems with flexible constants, then pick at the end
 -/
 
 /-- Alice produces a trace with close probs with good probability -/
-lemma alices_close (e0 : 0 < e) (q0 : 0 < q) (q1 : q ≤ 1) (f : Comp ι u α) :
+lemma alices_close (e0 : 0 < e) (q0 : 0 < q) (q1 : q ≤ 1) (f : BComp ι u α) :
     (1 - q : ℝ) ^ f.worst ≤ (alices o (alice e q) f).pr fun (t,_) ↦ t.Forall (o.close e) := by
   induction' f with x n p g h i m y f h
   · simp only [Comp.worst_pure', pow_zero, alices, pr_pure, List.Forall, ↓reduceIte, le_refl]
@@ -311,7 +322,7 @@ lemma alices_close (e0 : 0 < e) (q0 : 0 < q) (q1 : q ≤ 1) (f : Comp ι u α) :
 
 /-- Alice produces `(t,z)` with `t` close and `z = true` with good probability, since if we
     condition on Alice being close she does as least as well as a close oracle. -/
-lemma alices_success (f : Comp ι u Bool) (L : f.lipschitz o k)
+lemma alices_success (f : BComp ι u Bool) (L : f.lipschitz o k)
     (e0 : 0 < e) (q0 : 0 < q) (q1 : q ≤ 1) :
     (f.prob' o).prob true - k * e - ((1:ℝ) - (1 - q : ℝ) ^ f.worst) ≤
       (alices o (alice e q) f).pr (fun (t,z) => t.Forall (o.close e) ∧ z) := by
@@ -378,7 +389,7 @@ lemma evil_bobs_lies (eve : Bob ι) (cs : c < s) (v0 : 0 < v) (tc : t.Forall (o.
   | none => simp at ri
 
 /-- Alice wins the debate with good probability -/
-theorem completeness' (f : Comp ι u Bool) (L : f.lipschitz o k) (eve : Bob ι)
+theorem completeness' (f : BComp ι u Bool) (L : f.lipschitz o k) (eve : Bob ι)
     (c0 : 0 < c) (cs : c < s) (q0 : 0 < q) (q1 : q ≤ 1) (v0 : 0 < v) (v1 : v ≤ 1) :
     (1 - v) * ((f.prob' o).prob true - k * c - (1 - (1 - q) ^ f.worst)) ≤
       ((debate (alice c q) eve (vera c s v) f).prob' o).prob true := by
@@ -413,7 +424,7 @@ for closeness during completeness.
 
 /-- Evil Alice produces a close true trace with low probability, since by remaining close
     she looks like a close oracle. -/
-lemma evil_alices_lies (f : Comp ι u Bool) (L : f.lipschitz o k) (eve : Alice ι) (e0 : 0 < e) :
+lemma evil_alices_lies (f : BComp ι u Bool) (L : f.lipschitz o k) (eve : Alice ι) (e0 : 0 < e) :
     (alices o eve f).pr (fun (t,z) ↦ t.Forall (o.close e) ∧ z) ≤
       (f.prob' o).prob true + k * e := by
   trans (snaps o eve e f).pr (fun (t,z) ↦ t.Forall (o.close e) ∧ z)
@@ -506,7 +517,7 @@ lemma bobs_catches (cs : c < s) (sb : s < b) (q0 : 0 < q) (v0 : 0 < v) (v1 : v �
       exact bob_safe cs sb q0 v0 v1 qv (h tb) (by bound)
 
 /-- Bob wins the debate with good probability -/
-theorem soundness' (f : Comp ι u Bool) (L : f.lipschitz o k) (eve : Alice ι)
+theorem soundness' (f : BComp ι u Bool) (L : f.lipschitz o k) (eve : Alice ι)
     (c0 : 0 < c) (cs : c < s) (sb : s < b) (q0 : 0 < q) (v0 : 0 < v) (v1 : v ≤ 1) (qv : q ≤ v) :
     (1 - v) * (1 - q) ^ f.worst * ((f.prob' o).prob false - k * b) ≤
       ((debate eve (bob s b q) (vera c s v) f).prob' o).prob false := by
@@ -608,7 +619,7 @@ attribute [bound_forward] Params.k0 Params.c0 Params.cs Params.sb Params.q0 Para
   Params.v1 Params.qv Params.bw
 
 /-- Completeness for any valid parameters -/
-theorem completeness_p (f : Comp ι u Bool) (L : f.lipschitz o k) (eve : Bob ι)
+theorem completeness_p (f : BComp ι u Bool) (L : f.lipschitz o k) (eve : Bob ι)
     {w d : ℝ} (p : Params w d k f.worst) (m : w ≤ (f.prob' o).prob true) :
     d ≤ ((debate (alice p.c p.q) eve (vera p.c p.s p.v) f).prob' o).prob true := by
   refine le_trans (le_trans p.complete ?_) (completeness' f L eve p.c0 p.cs p.q0 p.q1 p.v0 p.v1)
@@ -619,7 +630,7 @@ theorem completeness_p (f : Comp ι u Bool) (L : f.lipschitz o k) (eve : Bob ι)
   linarith [p.q1]
 
 /-- Soundness for any valid parameters -/
-theorem soundness_p (f : Comp ι u Bool) (L : f.lipschitz o k) (eve : Alice ι)
+theorem soundness_p (f : BComp ι u Bool) (L : f.lipschitz o k) (eve : Alice ι)
     {w d : ℝ} (p : Params w d k f.worst) (m : w ≤ (f.prob' o).prob false) :
     d ≤ ((debate eve (bob p.s p.b p.q) (vera p.c p.s p.v) f).prob' o).prob false := by
   refine le_trans (le_trans p.sound ?_) (soundness' f L eve p.c0 p.cs p.sb p.q0 p.v0 p.v1 p.qv)

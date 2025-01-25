@@ -27,10 +27,10 @@ variable {α β : Type}
 def u : Set Unit := univ
 
 /-- Sort computations are w.r.t. a `≤` comparison oracle -/
-abbrev SOracle (α : Type) := Oracle (α × α)
+abbrev SOracle (α : Type) := BOracle (α × α)
 
 /-- Sort computations are w.r.t. a `≤` comparison oracle -/
-abbrev SComp (α β : Type) := Comp (α × α) u β
+abbrev SComp (α β : Type) := BComp (α × α) u β
 
 /-- When one list is another, sorted -/
 structure Sorted (o : SOracle α) (s t : List α) : Prop where
@@ -39,7 +39,7 @@ structure Sorted (o : SOracle α) (s t : List α) : Prop where
 
 /-- Valid sorting oracles are deterministic, reflexive, and transitive -/
 structure Oracle.Valid (o : SOracle α) : Prop where
-  deterministic : o.Deterministic
+  pure : o.IsPure
   refl : ∀ x, (o (x, x)).argmax
   anti : ∀ x y, (o (x, y)).argmax → (o (y, x)).argmax → x = y
   total : ∀ x y, (o (x, y)).argmax ∨ (o (y, x)).argmax
@@ -66,7 +66,7 @@ def oracles (α : Type) [Fintype α] : Finset (SOracle α) :=
 
 /-- `oracle π` is valid -/
 lemma valid_oracle (π : α ≃ Fin (Fintype.card α)) : (oracle π).Valid where
-  deterministic := by apply Oracle.deterministic_pure
+  pure := by apply Oracle.isPure_pure
   refl x := by simp [oracle]
   anti x y := by
     simp only [oracle, Prob.argmax_pure, decide_eq_true_eq]
@@ -241,7 +241,7 @@ def mergeSort : List α → SComp α (List α)
 
 omit [Fintype α] in
 /-- `merge` is `List.merge` -/
-lemma merge_eq (o : SOracle α) (d : o.Deterministic) : (s t : List α) →
+lemma merge_eq (o : SOracle α) (d : o.IsPure) : (s t : List α) →
     (merge s t).prob (fun _ ↦ o) = pure (List.merge s t (fun x y ↦ (o (x,y)).argmax))
   | [], _ => by simp only [Comp.prob', merge, Comp.prob_pure, List.merge]
   | (_ :: _), [] => by simp only [Comp.prob', merge, Comp.prob_pure, List.merge]
@@ -256,7 +256,7 @@ lemma merge_eq (o : SOracle α) (d : o.Deterministic) : (s t : List α) →
 
 omit [Fintype α] in
 /-- `mergeSort` is `List.mergeSort` -/
-lemma mergeSort_eq (o : SOracle α) (d : o.Deterministic) : (s : List α) →
+lemma mergeSort_eq (o : SOracle α) (d : o.IsPure) : (s : List α) →
     (mergeSort s).prob (fun _ ↦ o) = pure (List.mergeSort s (fun x y ↦ (o (x,y)).argmax))
   | [] => by simp only [mergeSort, Comp.prob_pure, List.mergeSort_nil]
   | [a] => by simp only [mergeSort, Comp.prob_pure, List.mergeSort_singleton]
@@ -276,7 +276,7 @@ omit [Fintype α]
 /-- `mergeSort` sorts -/
 lemma sorts_mergeSort : Sorts (mergeSort (α := α)) := by
   intro o s t v pt
-  simp only [Comp.prob', mergeSort_eq _ v.deterministic, Prob.prob_pure, ne_eq, ite_eq_right_iff,
+  simp only [Comp.prob', mergeSort_eq _ v.pure, Prob.prob_pure, ne_eq, ite_eq_right_iff,
     one_ne_zero, imp_false, Decidable.not_not] at pt
   rw [pt]
   exact {

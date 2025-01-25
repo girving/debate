@@ -12,20 +12,20 @@ open scoped Real
 noncomputable section
 
 variable {ι I : Type}
-variable {o : Oracle ι}
+variable {o : BOracle ι}
 variable {k : ℝ}
 variable {u : Set I}
-variable {f : Comp ι u Bool}
+variable {f : BComp ι u Bool}
 
 /-- Completeness for any valid parameters -/
-theorem completeness (L : f.lipschitz o k) (eve : Bob ι)
-    {w d : ℝ} (p : Params w d k f.worst) (m : w ≤ (f.prob' o).prob true) :
+theorem completeness (L : f.lipschitz o k) (eve : Bob ι) {w d : ℝ}
+    (p : Params w d k f.worst) (m : w ≤ (f.prob' o).prob true) :
     d ≤ ((debate (alice p.c p.q) eve (vera p.c p.s p.v) f).prob' o).prob true :=
   completeness_p f L eve p m
 
 /-- Soundness for any valid parameters -/
-theorem soundness (L : f.lipschitz o k) (eve : Alice ι)
-    {w d : ℝ} (p : Params w d k f.worst) (m : w ≤ (f.prob' o).prob false) :
+theorem soundness (L : f.lipschitz o k) (eve : Alice ι) {w d : ℝ}
+    (p : Params w d k f.worst) (m : w ≤ (f.prob' o).prob false) :
     d ≤ ((debate eve (bob p.s p.b p.q) (vera p.c p.s p.v) f).prob' o).prob false :=
   soundness_p f L eve p m
 

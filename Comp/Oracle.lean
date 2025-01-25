@@ -1,5 +1,6 @@
 import Prob.Argmax
 import Prob.Bernoulli
+import Prob.IsPure
 
 /-!
 # Stochastic oracle for use in randomized computations
@@ -14,17 +15,21 @@ open scoped Real
 noncomputable section
 
 variable {α : Type}
+variable {β : α → Type}
 
 /-- A stochastic oracle is a random map from `α → Bool` -/
-def Oracle (α : Type) := α → Prob Bool
+def Oracle (α : Type) (β : α → Type) := (x : α) → Prob (β x)
+
+/-- An `Oracle` that always returns `Bool` -/
+abbrev BOracle (α : Type) := Oracle α fun _ ↦ Bool
 
 /-- The probability of true for an oracle -/
-def Oracle.prob (o : Oracle α) (x : α) : ℝ :=
+def Oracle.prob (o : BOracle α) (x : α) : ℝ :=
   (o x).prob true
 
 /-- n random bits from an oracle, each given by feeding the oracle the previous result.
     This models an arbitrary computation, as `o` can behave differently based on input length. -/
-def Oracle.fold (o : Oracle (List Bool)) : (n : ℕ) → Prob (List.Vector Bool n)
+def Oracle.fold (o : BOracle (List Bool)) : (n : ℕ) → Prob (List.Vector Bool n)
 | 0 => pure .nil
 | n+1 => do
   let y ← o.fold n
@@ -32,28 +37,24 @@ def Oracle.fold (o : Oracle (List Bool)) : (n : ℕ) → Prob (List.Vector Bool 
   return y.cons x
 
 /-- The (n+1)th bit of o.fold -/
-def Oracle.final (o : Oracle (List Bool)) (t : ℕ) : Prob Bool := do
+def Oracle.final (o : BOracle (List Bool)) (t : ℕ) : Prob Bool := do
   let x ← o.fold (t+1)
   return x.head
 
 /-- The distance between two oracles is the sup of their probability differences -/
-instance : Dist (Oracle α) where
-  dist o0 o1 := ⨆ y, |(o0 y).prob true - (o1 y).prob true|
+instance : Dist (Oracle α β) where
+  dist o0 o1 := ⨆ y, ⨆ x, |(o0 y).prob x - (o1 y).prob x|
 
-/-- Deterministic oracles have probability 0 or 1, always -/
-def Oracle.Deterministic (o : Oracle α) : Prop :=
-  ∀ y, (o y).prob true = 0 ∨ (o y).prob true = 1
+/-- Pure oracles have probability 0 or 1, always -/
+def Oracle.IsPure (o : Oracle α β) : Prop :=
+  ∀ y, (o y).IsPure
 
-/-- `pure` is deterministic -/
-@[simp] lemma Oracle.deterministic_pure (f : α → Bool) : Deterministic (fun x ↦ pure (f x)) := by
-  intro x
-  induction f x
-  all_goals simp [Prob.prob_pure]
+/-- `pure` is pure -/
+@[simp] lemma Oracle.isPure_pure (f : (x : α) → β x) : IsPure (fun x ↦ pure (f x)) := by
+  intro x z
+  simp [Prob.prob_pure, ne_or_eq]
 
-/-- Deterministic oracles are pure -/
-lemma Oracle.Deterministic.eq_pure {o : Oracle α} (d : o.Deterministic) (x : α) :
-    o x = pure ((o x).argmax) := by
-  rw [(o x).eq_bernoulli]
-  rcases d x with h | h
-  · simp only [h, bernoulli_zero, argmax_pure]
-  · simp only [h, bernoulli_one, argmax_pure]
+/-- Pure oracles are `pure` -/
+lemma Oracle.IsPure.eq_pure {o : Oracle α β} (d : o.IsPure) (x : α) :
+    o x = pure ((o x).argmax) :=
+  (d x).eq_pure

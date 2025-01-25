@@ -18,7 +18,7 @@ variable {m : Type → Type u} [Monad m]
 def count (f : m Bool) : ℕ → m ℕ
 | 0 => pure 0
 | n+1 => do
-  let x := bif ←f then 1 else 0
+  let x := bif ← f then 1 else 0
   let y ← count f n
   return x + y
 

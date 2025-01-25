@@ -76,6 +76,10 @@ lemma exp_neg (f : Prob α) (g : α → V) : f.exp (fun x ↦ -g x) = -f.exp g :
   simp only [neg_smul, one_smul]
 lemma exp_sub (f : Prob α) (g h : α → V) : f.exp (fun x ↦ g x - h x) = f.exp g - f.exp h := by
   simp only [sub_eq_add_neg, exp_add, exp_neg]
+lemma exp_const_sub (f : Prob α) (g : V) (h : α → V) : f.exp (fun x ↦ g - h x) = g - f.exp h := by
+  simp only [exp_sub, exp_const]
+lemma exp_sub_const (f : Prob α) (g : α → V) (h : V) : f.exp (fun x ↦ g x - h) = f.exp g - h := by
+  simp only [exp_sub, exp_const]
 
 -- Expectation is linear (weak version for independent events, mul version)
 lemma exp_const_mul (s : ℝ) (f : Prob α) (g : α → ℝ) :

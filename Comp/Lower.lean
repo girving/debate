@@ -14,7 +14,7 @@ noncomputable section
 variable {α β : Type}
 
 /-- We can only learn one bit per query about our oracle -/
-theorem Comp.I_le_cost (p : Prob (Oracle α)) (f : Comp α (univ : Set Unit) β) :
+theorem Comp.I_le_cost (p : Prob (BOracle α)) (f : BComp α (univ : Set Unit) β) :
     (do let o ← p; let r ← f.prob' o; return (o, r)).I ≤ p.exp fun o ↦ f.cost' o () := by
   induction' f with x β f g' h j m y f h generalizing p
   · simp only [prob', prob_pure', pure_bind, Prob.I_const, cost'_pure', Prob.exp_const, le_refl]

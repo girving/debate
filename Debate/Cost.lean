@@ -20,7 +20,7 @@ noncomputable section
 
 variable {ι I α β: Type}
 variable {i : OracleId}
-variable {o : Oracle ι}
+variable {o : BOracle ι}
 variable {u : Set I}
 variable {n : ℕ}
 variable {k c s b e p q v : ℝ}
@@ -52,7 +52,7 @@ variable {y : ι}
 @[bound] private alias ⟨_, Bound.nat_cast_le⟩ := Nat.cast_le
 
 /-- Alice makes few queries, regardless of Bob and Vera -/
-lemma alice_steps_cost (bob : Bob ι) (vera : Vera ι) (f : Comp ι u α) :
+lemma alice_steps_cost (bob : Bob ι) (vera : Vera ι) (f : BComp ι u α) :
     (steps (alice c q) bob vera f).cost (fun _ ↦ o) AliceId ≤ f.worst * samples c q := by
   induction' f with x n p g h i m y f h
   · simp only [steps, Comp.cost_pure']
@@ -74,7 +74,7 @@ lemma alice_steps_cost (bob : Bob ι) (vera : Vera ι) (f : Comp ι u α) :
     | false => simp [exp_map, Function.comp_def]; bound
 
 /-- Bob makes few queries, regardless of Alice and Vera -/
-lemma bob_steps_cost (alice : Alice ι) (vera : Vera ι) (f : Comp ι u α) :
+lemma bob_steps_cost (alice : Alice ι) (vera : Vera ι) (f : BComp ι u α) :
     (steps alice (bob s b q) vera f).cost (fun _ ↦ o) BobId ≤ f.worst * samples ((b-s)/2) q := by
   induction' f with x n p g h i m y f h
   · simp only [steps, Comp.cost_pure', Comp.worst_pure', CharP.cast_eq_zero, zero_mul, le_refl]
@@ -93,7 +93,7 @@ lemma bob_steps_cost (alice : Alice ι) (vera : Vera ι) (f : Comp ι u α) :
     | false => simp [exp_map, Function.comp_def]; bound
 
 /-- Alice makes few queries, regardless of Bob and Vera -/
-theorem alice_debate_cost (bob : Bob ι) (vera : Vera ι) (f : Comp ι u Bool) :
+theorem alice_debate_cost (bob : Bob ι) (vera : Vera ι) (f : BComp ι u Bool) :
     (debate (alice c q) bob vera f).cost' o AliceId ≤ f.worst * samples c q := by
   simp only [debate, Comp.cost', Comp.cost_bind]
   rw [← add_zero (_ * _)]
@@ -103,7 +103,7 @@ theorem alice_debate_cost (bob : Bob ι) (vera : Vera ι) (f : Comp ι u Bool) :
     induction y; repeat simp only [Comp.cost_pure, le_refl]
 
 /-- Bob makes few queries, regardless of Alice and Vera -/
-theorem bob_debate_cost (alice : Alice ι) (vera : Vera ι) (f : Comp ι u Bool) :
+theorem bob_debate_cost (alice : Alice ι) (vera : Vera ι) (f : BComp ι u Bool) :
     (debate alice (bob s b q) vera f).cost' o BobId ≤ f.worst * samples ((b-s)/2) q := by
   simp only [debate, Comp.cost', Comp.cost_bind]
   rw [← add_zero (_ * _)]
@@ -113,7 +113,7 @@ theorem bob_debate_cost (alice : Alice ι) (vera : Vera ι) (f : Comp ι u Bool)
     induction y; repeat simp only [Comp.cost_pure, le_refl]
 
 /-- Alice makes `O(k^2 t log t)` queries with default parameters -/
-theorem alice_fast (k : ℝ) (k0 : 0 < k) (f : Comp ι u Bool) (bob : Bob ι) (vera : Vera ι) :
+theorem alice_fast (k : ℝ) (k0 : 0 < k) (f : BComp ι u Bool) (bob : Bob ι) (vera : Vera ι) :
     let p := defaults k f.worst k0
     (debate (alice p.c p.q) bob vera f).cost' o AliceId ≤
       f.worst * (5000 * k^2 * Real.log (200 * f.worst) + 1) := by
@@ -132,7 +132,7 @@ theorem alice_fast (k : ℝ) (k0 : 0 < k) (f : Comp ι u Bool) (bob : Bob ι) (v
     exact (Nat.ceil_lt_add_one (by bound)).le
 
 /-- Bob makes `O(k^2 t log t)` queries with default parameters -/
-theorem bob_fast (k : ℝ) (k0 : 0 < k) (f : Comp ι u Bool) (alice : Alice ι) (vera : Vera ι) :
+theorem bob_fast (k : ℝ) (k0 : 0 < k) (f : BComp ι u Bool) (alice : Alice ι) (vera : Vera ι) :
     let p := defaults k f.worst k0
     (debate alice (bob p.s p.b p.q) vera f).cost' o BobId ≤
       f.worst * (20000 / 9 * k^2 * Real.log (200 * f.worst) + 1) := by
@@ -163,7 +163,7 @@ def StateV (ι α : Type) := Except (ι × ℝ) α
 
 /-- One step of the debate protocol, without Vera
     c and s are the completeness and soundness parameters of the verifier. -/
-def stepV (alice : Alice ι) (bob : Bob ι) (y : ι) : Comp ι {AliceId,BobId} (StateV ι Bool) := do
+def stepV (alice : Alice ι) (bob : Bob ι) (y : ι) : BComp ι {AliceId,BobId} (StateV ι Bool) := do
   let p ← (alice y).allow (by subset)
   if ← (bob y p).allow (by subset) then do  -- Bob accepts Alice's probability, so take the step
     let x ← bernoulli p  -- This is Figure 4, steps 2b,2c,2d, as a fixed part of the protocol
@@ -172,7 +172,8 @@ def stepV (alice : Alice ι) (bob : Bob ι) (y : ι) : Comp ι {AliceId,BobId} (
     return .error ⟨y,p⟩
 
 /-- `n` steps of the debate protocol, without Vera -/
-def stepsV (alice : Alice ι) (bob : Bob ι) : (f : Comp ι u α) → Comp ι {AliceId,BobId} (StateV ι α)
+def stepsV (alice : Alice ι) (bob : Bob ι) :
+    (f : BComp ι u α) → BComp ι {AliceId,BobId} (StateV ι α)
 | .pure' x => pure (.ok x)
 | .sample' p f => .sample' p fun y ↦ stepsV alice bob (f y)
 | .query' _ _ y f => do match ← stepV alice bob y with
@@ -180,12 +181,12 @@ def stepsV (alice : Alice ι) (bob : Bob ι) : (f : Comp ι u α) → Comp ι {A
   | .error r => return .error r
 
 /-- Turn `StateV` into `State` with a Vera call -/
-def postV (vera : Vera ι) (x : StateV ι α) : Comp ι AllIds (State α) := match x with
+def postV (vera : Vera ι) (x : StateV ι α) : BComp ι AllIds (State α) := match x with
 | .ok y => return .ok y
 | .error ⟨y,p⟩ => return .error (← (vera y p).allow_all)
 
 /-- Relate `stepsV` and `steps `-/
-lemma post_stepsV (alice : Alice ι) (bob : Bob ι) (vera : Vera ι) (f : Comp ι u α) :
+lemma post_stepsV (alice : Alice ι) (bob : Bob ι) (vera : Vera ι) (f : BComp ι u α) :
     (stepsV alice bob f).allow_all >>= postV vera = steps alice bob vera f := by
   induction' f with x n p g h i m y f h
   · simp only [Comp.allow_all, stepsV, pure, Comp.allow_pure', Comp.pure'_bind, postV, steps]
@@ -199,7 +200,7 @@ lemma post_stepsV (alice : Alice ι) (bob : Bob ι) (vera : Vera ι) (f : Comp �
       bind_map_left, Comp.sample_bind, pure_bind, Bool.false_eq_true, postV, bind_pure_comp]
 
 /-- Vera makes few queries, regardless of Alice and Bob -/
-theorem vera_debate_cost (alice : Alice ι) (bob : Bob ι) (f : Comp ι u Bool) :
+theorem vera_debate_cost (alice : Alice ι) (bob : Bob ι) (f : BComp ι u Bool) :
     (debate alice bob (vera c s v) f).cost' o VeraId ≤ samples ((s-c)/2) v := by
   have z : (stepsV alice bob f).cost (fun _ ↦ o) VeraId = 0 := by zero_cost
   simp only [Comp.cost', debate, ← post_stepsV, bind_assoc, Comp.cost_bind, Comp.cost_allow_all, z,
@@ -224,7 +225,7 @@ theorem vera_debate_cost (alice : Alice ι) (bob : Bob ι) (f : Comp ι u Bool) 
   all_goals norm_num
 
 /-- Vera makes `O(k^2)` queries with default parameters -/
-theorem vera_fast (k : ℝ) (k0 : 0 < k) (f : Comp ι u Bool) (alice : Alice ι) (bob : Bob ι) :
+theorem vera_fast (k : ℝ) (k0 : 0 < k) (f : BComp ι u Bool) (alice : Alice ι) (bob : Bob ι) :
     let p := defaults k f.worst k0
     (debate alice bob (vera p.c p.s p.v) f).cost' o VeraId ≤ 106000 * k^2 + 1 := by
   refine le_trans (vera_debate_cost _ _ _) ?_

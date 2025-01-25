@@ -170,6 +170,14 @@ lemma bool_prob_true_of_false {f : Prob Bool} : f.prob true = 1 - f.prob false :
 lemma not_bool_prob {f : Prob Bool} {x : Bool} : (not <$> f).prob x = f.prob (not x) := by
   rw [←Bool.not_not x, map_prob_of_inj, Bool.not_not]; rw [Bool.injective_iff]; simp
 
+/-- The difference in probabilities between two boolean distributions is a constant -/
+lemma bool_abs_prob_diff {f g : Prob Bool} {x : Bool} (y : Bool) :
+    |f.prob x - g.prob x| = |f.prob y - g.prob y| := by
+  induction' x
+  all_goals induction' y
+  all_goals simp only [bool_prob_false_of_true]; try ring_nf
+  all_goals nth_rw 1 [← abs_neg]; ring_nf
+
 /-- Bound a prob bind in terms of an intermediate event -/
 lemma le_prob_bind_of_cut {f : Prob α} {g : α → Prob β} (x : α) {y : β} :
     f.prob x * (g x).prob y ≤ (f >>= g).prob y := by
