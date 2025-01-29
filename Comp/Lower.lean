@@ -7,7 +7,6 @@ import Prob.Entropy
 We can only learn one bit per query about an oracle.
 -/
 
-open Real (logb)
 open Set
 noncomputable section
 

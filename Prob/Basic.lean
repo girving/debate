@@ -44,7 +44,8 @@ lemma prob_bind (f : Prob α) (g : α → Prob β) (y : β) :
 /-- bind.exp is iterated exp -/
 lemma exp_bind (f : Prob α) (g : α → Prob β) (h : β → V) :
     (f >>= g).exp h = f.exp (λ x ↦ (g x).exp h) := by
-  simp only [exp, prob_bind']; rw [Finsupp.sum_sum_index]
+  simp only [exp, prob_bind']
+  rw [Finsupp.sum_sum_index]
   · apply Finsupp.sum_congr; intro x _; rw [Finsupp.sum_smul_index]
     · simp only [← smul_smul, ← Finsupp.smul_sum]
     · intro _; simp only [zero_smul]

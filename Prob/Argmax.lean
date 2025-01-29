@@ -1,4 +1,4 @@
-import Prob.Basics
+import Prob.Basic
 
 /-!
 # Most likely element of a `Prob α`

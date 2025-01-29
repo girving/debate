@@ -1,4 +1,4 @@
-import Prob.Basics
+import Prob.Basic
 
 /-!
 # Uniform distribution on a `Finset`
@@ -49,3 +49,24 @@ lemma prob_uniform {s : Finset α} {n : s.Nonempty} {x : α} (px : (uniform s n)
     (uniform s n).prob x = (s.card : ℝ)⁻¹ := by
   rw [← Finsupp.mem_support_iff, ← supp, supp_uniform] at px
   simp only [uniform, uniform_finsupp, Finsupp.coe_mk, px, ↓reduceIte]
+
+/-!
+### The uniform distribution on a `Fintype`
+-/
+
+variable [Fintype α] [Nonempty α]
+
+/-- The uniform distribution on a `Fintype` -/
+def uniform_univ (α : Type) [Fintype α] [Nonempty α] : Prob α :=
+  uniform Finset.univ Finset.univ_nonempty
+
+@[simp] lemma supp_uniform_univ : (uniform_univ α).supp = Finset.univ := by
+  simp only [supp, uniform_univ, support_uniform]
+
+@[simp] lemma support_uniform_univ : (uniform_univ α).prob.support = Finset.univ := by
+  simp only [uniform_univ, support_uniform]
+
+@[simp] lemma prob_uniform_univ {x : α} : (uniform_univ α).prob x = (Fintype.card α : ℝ)⁻¹ := by
+  rw [uniform_univ, prob_uniform, Finset.card_univ]
+  rw [← mem_iff, supp_uniform]
+  apply Finset.mem_univ

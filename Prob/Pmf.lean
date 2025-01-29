@@ -3,7 +3,7 @@ import Mathlib.Probability.ProbabilityMassFunction.Basic
 import Mathlib.Probability.ProbabilityMassFunction.Integrals
 import Mathlib.Probability.ProbabilityMassFunction.Monad
 import Misc.Finset
-import Prob.Basics
+import Prob.Basic
 
 /-!
 `Prob` injects into `PMF`

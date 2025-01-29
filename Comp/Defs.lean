@@ -6,7 +6,7 @@ import Prob.Fin
 ## Oracle-relative probabilistic computations
 
 `Prob α` represents the result of a probabilistic computation, but has no information about
-how long the computation took.  `Comp ι s α` is a computation that is allowed to consult any
+how long the computation took.  `Comp ι ω s α` is a computation that is allowed to consult any
 oracle `o ∈ s`, and produces a distribution over results and calls to each oracle.
 -/
 
@@ -68,7 +68,7 @@ def run (f : Comp ι ω s α) (o : I → Oracle ι ω) : Prob (α × (I → ℕ)
   | .pure' x => pure (x, fun _ => 0)
   | .sample' f g => f >>= fun x ↦ (g x).run o
   | .query' i _ y f => do
-    let x ← (o i) y
+    let x ← o i y
     let (z,c) ← (f x).run o
     return (z, c + fun j => if j = i then 1 else 0)
 

@@ -1,4 +1,4 @@
-import Prob.Basics
+import Prob.Basic
 import Misc.If
 
 /-!

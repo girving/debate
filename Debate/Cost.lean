@@ -2,7 +2,7 @@ import Comp.Basic
 import Debate.Details
 import Debate.Protocol
 import Mathlib.Data.Complex.ExponentialBounds
-import Mathlib.Tactic.Bound
+import Misc.Bound
 
 /-!
 # Query complexity for each agent in the debate protocol
@@ -47,9 +47,6 @@ variable {y : ι}
 /-!
 ### Alice and Bob cost
 -/
-
-/-- TODO: Upstream -/
-@[bound] private alias ⟨_, Bound.nat_cast_le⟩ := Nat.cast_le
 
 /-- Alice makes few queries, regardless of Bob and Vera -/
 lemma alice_steps_cost (bob : Bob ι) (vera : Vera ι) (f : BComp ι u α) :

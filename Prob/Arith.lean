@@ -1,4 +1,4 @@
-import Prob.Basics
+import Prob.Basic
 import Misc.If
 
 /-!
@@ -114,12 +114,12 @@ lemma exp_mono' {f g : Prob α} (u v : α → ℝ) (h : ∀ x, f.prob x * u x �
 /-- Upper bounding an expectation by bounding each element -/
 lemma exp_le_of_forall_le {f : Prob α} {u : α → ℝ} {b : ℝ} (h : ∀ x, f.prob x ≠ 0 → u x ≤ b) :
     f.exp u ≤ b := by
-  rw [←exp_const f b]; exact exp_mono h
+  rw [← exp_const f b]; exact exp_mono h
 
 /-- Lower bounding an expectation by bounding each element -/
 lemma le_exp_of_forall_le {f : Prob α} {u : α → ℝ} {b : ℝ} (h : ∀ x, f.prob x ≠ 0 → b ≤ u x) :
     b ≤ f.exp u := by
-  rw [←exp_const f b]; exact exp_mono h
+  rw [← exp_const f b]; exact exp_mono h
 
 -- Mean is linear
 lemma mean_smul (s : ℝ) (f : Prob V) : (s • f).mean = s • f.mean := by
@@ -203,7 +203,7 @@ lemma pr_and_const {f : Prob α} {p : α → Prop} {q : Prop} :
 
 /-- f.exp u = 0 in terms of forall -/
 lemma exp_eq_zero {f : Prob α} {u : α → V} (u0 : ∀ x, f.prob x ≠ 0 → u x = 0) : f.exp u = 0 := by
-  rw [←exp_const f 0]; exact exp_congr u0
+  rw [← exp_const f 0]; exact exp_congr u0
 
 /-- f.pr p = 0 in terms of forall -/
 lemma pr_eq_zero {f : Prob α} {p : α → Prop} : f.pr p = 0 ↔ ∀ x, f.prob x ≠ 0 → ¬p x := by
@@ -268,7 +268,7 @@ lemma pr_eq_add_of_cut {f : Prob α} {p : α → Prop} (q : α → Prop) :
 /-- Markov's inequality -/
 lemma markov' (f : Prob α) (g : α → ℝ) (f0 : ∀ x, f.prob x ≠ 0 → 0 ≤ g x) {a : ℝ} (a0 : 0 < a) :
     f.pr (fun x ↦ a ≤ g x) ≤ f.exp g / a := by
-  simp only [le_div_iff₀ a0, pr, mean, ←exp_mul_const, ite_mul, one_mul, zero_mul, id]
+  simp only [le_div_iff₀ a0, pr, mean, ← exp_mul_const, ite_mul, one_mul, zero_mul, id]
   apply exp_mono; intro x m; split; assumption; exact f0 _ m
 lemma markov (f : Prob ℝ) (f0 : ∀ x, f.prob x ≠ 0 → 0 ≤ x) {a : ℝ} (a0 : 0 < a) :
     f.pr (fun x ↦ a ≤ x) ≤ f.mean / a :=
