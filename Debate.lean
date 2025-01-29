@@ -10,10 +10,11 @@ import Debate.Protocol
 import Debate.Details
 import Debate.Cost
 import Debate.Correct
+import Group.Generic
+import Prob.Compression
 import Prob.Defs
 import Prob.Jensen
 import Prob.Pmf
-import Prob.Compression
 
 /-!
 Import definition and correctness proof for stochastic oracle debate

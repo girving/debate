@@ -17,4 +17,8 @@ lean_lib Prob
 
 lean_lib Comp
 
+lean_lib DComp
+
+lean_lib Group
+
 lean_lib Misc
