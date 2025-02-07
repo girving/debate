@@ -131,7 +131,7 @@ variable {f : List α → SComp α (List α)}
 
 /-- Reconstruct the oracle from a sorted list -/
 def sort_to_oracle (t : List α) : SOracle α :=
-  fun ⟨x,y⟩ ↦ pure (t.indexOf x ≤ t.indexOf y)
+  fun ⟨x,y⟩ ↦ pure (t.idxOf x ≤ t.idxOf y)
 
 /-- The result of sorting w.r.t. `oracle π` -/
 lemma sort_eq {π : α ≃ Fin (Fintype.card α)} {s t : List α} (d : s.Nodup)
@@ -156,18 +156,18 @@ lemma sort_eq {π : α ≃ Fin (Fintype.card α)} {s t : List α} (d : s.Nodup)
 
 omit [Fintype α] in
 lemma List.indexOf_map (l : List α) (f : α ≃ β) (x : β) :
-    (l.map f).indexOf x = l.indexOf (f.symm x) := by
+    (l.map f).idxOf x = l.idxOf (f.symm x) := by
   induction' l with y l h
   · simp
-  · simp [List.indexOf_cons, h, Equiv.eq_symm_apply, beq_eq_decide, bif_eq_if]
+  · simp [List.idxOf_cons, h, Equiv.eq_symm_apply, beq_eq_decide, bif_eq_if]
 
 /-- `sort_to_oracle` is correct -/
 lemma sort_to_oracle_eq {π : α ≃ Fin (Fintype.card α)} {s t : List α} (d : s.Nodup)
     (u : s.toFinset = Finset.univ) (h : Sorted (oracle π) s t) : sort_to_oracle t = oracle π := by
-  have e : ∀ x, t.indexOf x = π x := by
+  have e : ∀ x, t.idxOf x = π x := by
     intro x
     simp only [sort_eq d u h, List.map_eq_map, List.indexOf_map, Equiv.symm_symm]
-    convert List.indexOf_finRange (π x)
+    convert List.idxOf_finRange (π x)
   funext ⟨x,y⟩
   simp only [sort_to_oracle, e, Fin.val_fin_le, oracle]
 

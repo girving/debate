@@ -1,6 +1,4 @@
-import Mathlib.Algebra.BigOperators.Finsupp
-import Mathlib.Data.Finsupp.Basic
-import Misc.Finset
+import Mathlib.Analysis.InnerProductSpace.Basic
 
 /-!
 Finitely supported probability distributions as a monad

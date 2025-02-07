@@ -1,5 +1,5 @@
 import Mathlib.Topology.Algebra.InfiniteSum.Basic
-import Mathlib.Topology.Instances.ENNReal
+import Mathlib.Data.ENNReal.Operations
 
 /-!
 `Finset` facts

@@ -35,7 +35,7 @@ lemma iteratedDerivWithin_eq_iteratedDeriv {f : ℝ → ℝ} (fc : ContDiff ℝ 
   · simp only [Nat.zero_eq, ge_iff_le, not_le, gt_iff_lt, iteratedDerivWithin_zero,
       iteratedDeriv_zero]
   · have u : UniqueDiffWithinAt ℝ (Icc a b) t := uniqueDiffWithinAt_Icc ab m
-    rw [iteratedDerivWithin_succ u, iteratedDeriv_succ, ←derivWithin_univ,
+    rw [iteratedDerivWithin_succ, iteratedDeriv_succ, ←derivWithin_univ,
       ←derivWithin_subset (subset_univ _) u]
     apply derivWithin_congr; exact fun _ m ↦ h m; exact h m
     apply DifferentiableAt.differentiableWithinAt

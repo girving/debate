@@ -21,9 +21,6 @@ noncomputable section
 variable {G : Type} [Group G]
 variable {α : Type}
 
-/-- We only have one oracle, so index them by `Unit` -/
-def u : Set Unit := univ
-
 /-- An oracle call either multiplies two elements, or inverts one -/
 inductive Op (α : Type) where
 | mul : α → α → Op α
