@@ -34,12 +34,12 @@ structure Comp.Factor (ι : Type) (ω : ι → Type) (s : Set I) (α : Type) : T
 def Comp.factor [∀ x, Fintype (ω x)] (f : Comp ι ω s α) : Comp.Factor ι ω s α := match f with
   | .pure' x => ⟨Unit, pure (), fun _ ↦ pure x⟩
   | .sample' p f =>
-    let β := Σ x, (f x).factor.1
+    let β := Σ x, (f x).factor.β
     let p : Prob β := p.dbind fun x ↦ (f x).factor.p
     let f : β → DComp ι ω s α := fun x ↦ (f x.1).factor.f x.2
     ⟨β, p, f⟩
   | .query' i m y f =>
-    let β := Π x, (f x).factor.1
+    let β := Π x, (f x).factor.β
     let p : Prob β := Prob.pi fun x ↦ (f x).factor.p
     let f : β → DComp ι ω s α := fun x ↦ .query' i m y fun z ↦ (f z).factor.f (x z)
     ⟨β, p, f⟩

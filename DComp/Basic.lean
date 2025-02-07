@@ -211,7 +211,7 @@ lemma cost_bind (f : DComp ι ω s α) (g : α → DComp ι ω s β) (o : I → 
   · simp only [allow, value_query', h]
 
 @[simp] lemma value_allow_all (f : DComp ι ω s α) (o : I → (x : ι) → ω x) :
-    (f.allow_all).value o = f.value o := by
+    f.allow_all.value o = f.value o := by
   apply value_allow
 
 @[simp] lemma cost_allow (f : DComp ι ω s α) (st : s ⊆ t) (o : I → (x : ι) → ω x) (i : I) :
@@ -221,7 +221,7 @@ lemma cost_bind (f : DComp ι ω s α) (g : α → DComp ι ω s β) (o : I → 
   · simp only [allow, cost_query', h]
 
 @[simp] lemma cost_allow_all (f : DComp ι ω s α) (o : I → (x : ι) → ω x) (i : I) :
-    (f.allow_all).cost o i = f.cost o i := by
+    f.allow_all.cost o i = f.cost o i := by
   apply cost_allow
 
 @[simp] lemma allow_pure (x : α) (st : s ⊆ t) : (pure x : DComp ι ω s α).allow st = pure x := by

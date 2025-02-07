@@ -23,9 +23,6 @@ noncomputable section
 
 variable {α β : Type}
 
-/-- We only have one oracle, so index them by `Unit` -/
-private def u : Set Unit := univ
-
 /-- Sort computations are w.r.t. a `≤` comparison oracle -/
 abbrev SOracle (α : Type) := BOracle (α × α)
 

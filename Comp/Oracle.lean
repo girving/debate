@@ -12,10 +12,14 @@ open Classical
 open Prob
 open Option (some none)
 open scoped Real
+open Set
 noncomputable section
 
 variable {α : Type}
 variable {β : α → Type}
+
+/-- A convenient abbreviation for when there is exactly one oracle -/
+abbrev u : Set Unit := univ
 
 /-- A stochastic oracle is a random map from `α → Bool` -/
 def Oracle (α : Type) (β : α → Type) := (x : α) → Prob (β x)
