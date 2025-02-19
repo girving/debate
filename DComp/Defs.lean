@@ -1,4 +1,5 @@
-import Comp.Defs
+-- import Comp.Defs
+import Mathlib
 
 /-!
 ## Oracle-relative deterministic computations
@@ -27,14 +28,15 @@ variable {α β γ : Type}
     Importantly, the computation does not know the oracle, so we can model query complexity.
     The `DComp` constructors are not very user friendly due to kernel restrictions on inductive,
     but we replace them with clean ones below. -/
-inductive DComp (ι : Type) (ω : ι → Type) (s : Set I) (α : Type) : Type where
+inductive DComp (ι : I → Type) (ω : {o : I} → ι o → Type) (s : Set I) (α : Type) : Type where
   /-- Return a result with no computation -/
   | pure' : α → DComp ι ω s α
   /-- Query an oracle `o ∈ s`, and branch on the result -/
-  | query' : (o : I) → o ∈ s → (y : ι) → ((ω y) → DComp ι ω s α) → DComp ι ω s α
+  | query' : (o : I) → o ∈ s → (y : ι o) → ((ω y) → DComp ι ω s α) → DComp ι ω s α
 
 namespace DComp
 
+variable {ι : I → Type} {ω : {o : I} → ι o → Type}
 /-- Bind two `DComp`s together -/
 def bind' (f : DComp ι ω s α) (g : α → DComp ι ω s β) : DComp ι ω s β := match f with
   | .pure' x => g x
@@ -46,11 +48,11 @@ instance : Monad (DComp ι ω s) where
   bind := DComp.bind'
 
 /-- The simplest case of `DComp.query'` -/
-def query (i : I) (y : ι) : DComp ι ω {i} (ω y) :=
+def query (i : I) (y : ι i) : DComp ι ω {i} (ω y) :=
   DComp.query' i (mem_singleton _) y pure
 
 /-- The value and query counts of a `DComp ι s`, once we supply oracles -/
-def run (f : DComp ι ω s α) (o : I → (x : ι) → ω x) : α × (I → ℕ) := match f with
+def run (f : DComp ι ω s α) (o : (o : I) → (x : ι o) → ω x) : α × (I → ℕ) := match f with
   | .pure' x => (x, fun _ => 0)
   | .query' i _ y f =>
     let x := o i y
@@ -62,15 +64,15 @@ def value (f : DComp ι ω s α) (o : I → (x : ι) → ω x) : α :=
   (f.run o).1
 
 /-- The value of a `DComp` when all oracles are the same -/
-@[simp] def value' (f : DComp ι ω s α) (o : I → (x : ι) → ω x) : α :=
+@[simp] def value' (f : DComp ι ω s α) (o : (o : I) → (x : ι o) → ω x) : α :=
   (f.run o).1
 
 /-- The query cost of a `DComp` -/
-def cost (f : DComp ι ω s α) (o : I → (x : ι) → ω x) : I → ℕ :=
+def cost (f : DComp ι ω s α) (o : (o : I) → (x : ι o) → ω x) : I → ℕ :=
   (f.run o).2
 
 /-- The expected query cost of a `Comp` when all oracles are the same. -/
-def cost' (f : DComp ι ω s α) (o : I → (x : ι) → ω x) : I → ℕ :=
+def cost' (f : DComp ι ω s α) (o : (o : I) → (x : ι o) → ω x) : I → ℕ :=
   (f.run o).2
 
 /-- Allow more oracles in a computation -/
