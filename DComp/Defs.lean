@@ -1,5 +1,5 @@
--- import Comp.Defs
-import Mathlib
+import Mathlib.Algebra.Group.Pi.Basic
+import Mathlib.Data.Set.Basic
 
 /-!
 ## Oracle-relative deterministic computations
@@ -14,13 +14,11 @@ oracle `o ∈ s`.
 
 open Classical
 open Option (some none)
-open scoped Real
 open Set
 noncomputable section
 
 variable {n : ℕ}
-variable {ι I : Type}
-variable {ω : ι → Type}
+variable {I : Type} {ι : I → Type} {ω : {o : I} → ι o → Type}
 variable {s t : Set I}
 variable {α β γ : Type}
 
@@ -60,7 +58,7 @@ def run (f : DComp ι ω s α) (o : (o : I) → (x : ι o) → ω x) : α × (I 
     (z, c + fun j => if j = i then 1 else 0)
 
 /-- The value of a `DComp` -/
-def value (f : DComp ι ω s α) (o : I → (x : ι) → ω x) : α :=
+def value (f : DComp ι ω s α) (o : (o : I) → (x : ι o) → ω x) : α :=
   (f.run o).1
 
 /-- The value of a `DComp` when all oracles are the same -/
