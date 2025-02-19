@@ -1,5 +1,6 @@
 import Comp.Oracle
 import Comp.Defs
+import DComp.Basic
 import Prob.Arith
 import Prob.Estimate
 
@@ -22,31 +23,19 @@ namespace Comp
 
 lemma map_eq (f : α → β) (x : Comp ι ω s α) : f <$> x = x >>= (λ x ↦ pure (f x)) := rfl
 
+@[simp]
+lemma pure_eq_pure : (DComp.pure' : α → DComp ι ω s α) = pure := rfl
+
 /-- `Comp` is a lawful monad -/
-instance : LawfulMonad (Comp ι ω s) := LawfulMonad.mk'
-  (id_map := by
-    intro α f
-    simp only [map_eq, id, bind, bind']
-    induction' f with x β f g h o m y f h
-    · rfl
-    · simp only [bind', sample'.injEq, heq_eq_eq, true_and]; ext y; apply h
-    · simp only [bind', h])
-  (pure_bind := by intro α β x f; simp only [bind, bind'])
-  (bind_assoc := by
-    intro α β β f g h
-    simp only [bind]
-    induction' f with x β f g h o m y f h
-    · rfl
-    · simp only [bind', sample'.injEq, heq_eq_eq, true_and, h]
-    · simp only [bind', h])
+instance : LawfulMonad (Comp ι ω s) := inferInstanceAs <| LawfulMonad (DComp _ _ _)
 
 /-- Running a `pure'` is `pure` -/
 @[simp] lemma prob_pure' (x : α) (o : (i : I) → Oracle (ι i) ω) :
-    (pure' x : Comp ι ω s α).prob o = pure x := by
-  simp only [prob, run, map_pure]
+    (pure x : Comp ι ω s α).prob o = pure x := by
+  simp [prob, run]
 
 -- The definition of `Comp.bind` as `simp` lemmas
-@[simp] lemma pure'_bind (x : α) (f : α → Comp ι ω s β) : (pure' x : Comp ι ω s α) >>= f = f x :=
+@[simp] lemma pure'_bind (x : α) (f : α → Comp ι ω s β) : (pure x : Comp ι ω s α) >>= f = f x :=
   rfl
 @[simp] lemma sample'_bind (f : Prob (Fin n)) (g : Fin n → Comp ι ω s β) (h : β → Comp ι ω s γ) :
     sample' f g >>= h = .sample' f fun x ↦ g x >>= h := rfl
@@ -62,7 +51,7 @@ instance : LawfulMonad (Comp ι ω s) := LawfulMonad.mk'
     f <$> query' i m y g = query' i m y fun x ↦ f <$> (g x) := rfl
 
 -- The definition of `Comp.allow` as `simp` lemmas
-@[simp] lemma allow_pure' (x : α) (st : s ⊆ t) : (pure' x : Comp ι ω s α).allow st = pure x := rfl
+@[simp] lemma allow_pure' (x : α) (st : s ⊆ t) : (pure x : Comp ι ω s α).allow st = pure x := rfl
 @[simp] lemma allow_sample' (f : Prob (Fin n)) (g : Fin n → Comp ι ω s α) (st : s ⊆ t) :
     (sample' f g).allow st = sample' f fun x ↦ (g x).allow st := rfl
 @[simp] lemma allow_query' (i : I) (m : i ∈ s) (y : ι i) (f : ω y → Comp ι ω s α) (st : s ⊆ t) :
@@ -76,21 +65,18 @@ instance : LawfulMonad (Comp ι ω s) := LawfulMonad.mk'
 ## `Comp.run` commutes with various things
 -/
 
-@[simp] lemma run_pure' (x : α) (o : (i : I) → Oracle (ι i) ω) :
-    (Comp.pure' x : Comp ι ω s α).run o = pure (x, fun _ ↦ 0) := by
-  simp only [Comp.run]
-
 @[simp] lemma run_pure (x : α) (o : (i : I) → Oracle (ι i) ω) :
     (pure x : Comp ι ω s α).run o = pure (x, fun _ ↦ 0) := by
-  simp only [pure, Comp.run]
+  simp [Comp.run, Function.comp_def]
 
 @[simp] lemma run_sample' (f : Prob (Fin n)) (g : Fin n → Comp ι ω s β) (o : (i : I) → Oracle (ι i) ω) :
     (sample' f g).run o = f >>= fun x ↦ (g x).run o := by
-  simp only [pure, Comp.run]
+  rw [run, sample', DComp.runM_query']
+  simp [run, ← bind_pure_comp, Function.comp_def, Prod.map]
 
 @[simp] lemma run_sample (f : Prob α) (g : α → Comp ι ω s β) (o : (i : I) → Oracle (ι i) ω) :
     (Comp.sample f g).run o = f >>= fun x ↦ (g x).run o := by
-  simp only [sample, run, Function.comp_apply, bind_fin f fun x ↦ (g x).run o]
+  simp [sample, bind_fin f fun x ↦ (g x).run o]
 
 lemma run_query' {i : I} (m : i ∈ s) (y : ι i) (f : ω y → Comp ι ω s α)
     (o : (i : I) → Oracle (ι i) ω) : (Comp.query' i m y f).run o = do

@@ -50,7 +50,7 @@ instance : Monad (Comp ι ω s) where
   pure := DComp.pure'
   bind := Comp.bind'
 
-nonrec def query'' (o : I) : o ∈ s → (y : ι o) → ((ω y) → Comp ι ω s α) → Comp ι ω s α :=
+nonrec def query' (o : I) : o ∈ s → (y : ι o) → ((ω y) → Comp ι ω s α) → Comp ι ω s α :=
   fun h y f => .query' (some o) (by simp [h]) y f
 
 @[match_pattern]
@@ -67,16 +67,16 @@ instance : Coe (Prob α) (Comp ι ω s α) where
 
 /-- The simplest case of `Comp.query'` -/
 def query (i : I) (y : ι i) : Comp ι ω {i} (ω y) :=
-  Comp.query'' i (mem_singleton _) y pure
+  Comp.query' i (mem_singleton _) y pure
 
 /-- The value and query counts of a `Comp ι s`, once we supply oracles -/
-def run (f : Comp ι ω s α) (o : (i : I) → Oracle (ι i) ω) : Prob (α × (I → ℕ)) := match f with
-  | .pure' x => pure (x, fun _ => 0)
-  | .sample' f g => f >>= fun x ↦ (g x).run o
-  | .query'' i _ y f => do
-    let x ← o i y
-    let (z,c) ← (f x).run o
-    return (z, c + fun j => if j = i then 1 else 0)
+def run (f : Comp ι ω s α) (o : (i : I) → Oracle (ι i) ω) : Prob (α × (I → ℕ)) :=
+  -- run the underlying computation monadically, using `o` when the index is `some`
+  -- and discarding the cost when the index is `none`.
+  Prod.map id (· ∘ some) <$>
+    f.runM fun
+      | none, ⟨_, f⟩ => f
+      | some i, x => o i x
 
 /-- The value of a `Comp` -/
 def prob (f : Comp ι ω s α) (o : (i : I) → Oracle (ι i) ω) : Prob α :=
@@ -89,10 +89,8 @@ def cost (f : Comp ι ω s α) (o : (i : I) → Oracle (ι i) ω) (i : I) : ℝ 
 
 
 /-- Allow more oracles in a computation -/
-def allow (f : Comp ι ω s α) (st : s ⊆ t) : Comp ι ω t α := match f with
-  | .pure' x => pure x
-  | .sample' f g => sample' f fun x ↦ (g x).allow st
-  | .query' i m y f => .query' i (st m) y fun x ↦ (f x).allow st
+nonrec def allow (f : Comp ι ω s α) (st : s ⊆ t) : Comp ι ω t α :=
+  f.allow (union_subset_union_left _ <| image_subset _ st)
 
 /-- Allow all oracles in a computation -/
 def allow_all (f : Comp ι ω s α) : Comp ι ω (@univ I) α :=
@@ -102,8 +100,8 @@ def allow_all (f : Comp ι ω s α) : Comp ι ω (@univ I) α :=
     For simplicity, we do not check for zero probabilities, so it is sometimes an overestimate. -/
 def worst [∀ (i) (x : ι i), Fintype (ω x)] (f : Comp ι ω s α) : ℕ := match f with
 | .pure' _ => 0
-| .sample' _ f => Finset.univ.sup fun x ↦ (f x).worst
-| .query' _ _ _ f => 1 + Finset.univ.sup fun x ↦ (f x).worst
+| DComp.query' none _ _ f => Finset.univ.sup fun x ↦ worst (f x)
+| DComp.query' (some _) _ _ f => 1 + Finset.univ.sup fun x ↦ worst (f x)
 
 section
 variable {ι : Type} {ω : ι → Type}

@@ -49,13 +49,19 @@ instance : Monad (DComp ι ω s) where
 def query (i : I) (y : ι i) : DComp ι ω {i} (ω y) :=
   DComp.query' i (mem_singleton _) y pure
 
+/-- The value and query counts of a `DComp ι s`, once we supply monadic oracles -/
+def runM {m : Type → Type} [Monad m] (f : DComp ι ω s α) (o : (o : I) → (x : ι o) → m (ω x)) :
+    m (α × (I → ℕ)) :=
+  match f with
+  | .pure' x => pure (x, fun _ => 0)
+  | .query' i _ y f => do
+    let x ← o i y
+    let (z, c) ← (f x).runM o
+    pure (z, c + fun j => if j = i then 1 else 0)
+
 /-- The value and query counts of a `DComp ι s`, once we supply oracles -/
-def run (f : DComp ι ω s α) (o : (o : I) → (x : ι o) → ω x) : α × (I → ℕ) := match f with
-  | .pure' x => (x, fun _ => 0)
-  | .query' i _ y f =>
-    let x := o i y
-    let (z,c) := (f x).run o
-    (z, c + fun j => if j = i then 1 else 0)
+def run (f : DComp ι ω s α) (o : (o : I) → (x : ι o) → ω x) : α × (I → ℕ) :=
+  f.runM (m := Id) o
 
 /-- The value of a `DComp` -/
 def value (f : DComp ι ω s α) (o : (o : I) → (x : ι o) → ω x) : α :=
