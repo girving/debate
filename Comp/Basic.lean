@@ -405,7 +405,7 @@ variable [∀ x, Fintype (ω x)]
   · simp only [worst, map_sample', h]
   · simp only [worst, map_query', h]
 
-/-- Version of `Finset.le_sup` that work inside `bound` -/
+/-- Version of `Finset.le_sup` that works inside `bound` -/
 @[bound] lemma _root_.Finset.le_univ_sup [Fintype α] (f : α → Comp ι ω s β) {x : α} :
     (f x).worst ≤ Finset.univ.sup fun x ↦ (f x).worst := by
   apply Finset.le_sup (Finset.mem_univ x)

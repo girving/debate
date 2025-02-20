@@ -213,6 +213,26 @@ lemma if_bind_comm {c : Prop} {h : Decidable c} (x : Prob α) (y : α → Prob �
   by_cases p : c
   all_goals simp only [p, ↓reduceIte, bind_const]
 
+/-- All probabilities are 1 over subsingleton spaces -/
+@[simp] lemma prob_eq_one [s : Subsingleton α] (p : Prob α) (x : α) : p.prob x = 1 := by
+  have t := p.total
+  have f := Fintype.ofSubsingleton x
+  rwa [Finsupp.sum_fintype, Fintype.sum_subsingleton _ x] at t
+  simp only [implies_true]
+
+/-- `Prob` over singleton spaces is singleton -/
+instance [Subsingleton α] : Subsingleton (Prob α) where
+  allEq p q := by
+    ext x
+    simp only [prob_eq_one]
+
+/-- `Prob` over unique spaces is unique -/
+instance [Unique α] : Unique (Prob α) where
+  default := pure default
+  uniq p := by
+    ext x
+    simp only [prob_eq_one]
+
 /-!
 ### Tactics
 -/

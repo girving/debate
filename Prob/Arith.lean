@@ -101,6 +101,9 @@ lemma exp_mono {f : Prob α} {g h : α → ℝ} (gh : ∀ x, f.prob x ≠ 0 → 
 @[bound] lemma exp_nonneg {f : Prob α} {g : α → ℝ} (g0 : ∀ x, f.prob x ≠ 0 → 0 ≤ g x) :
     0 ≤ f.exp g := by
   simpa only [exp_const] using exp_mono g0
+@[bound] lemma exp_nonpos {f : Prob α} {g : α → ℝ} (g0 : ∀ x, f.prob x ≠ 0 → g x ≤ 0) :
+    f.exp g ≤ 0 := by
+  simpa only [exp_const] using exp_mono g0
 
 /-- Expectation is monotonic, general version for different distributions -/
 lemma exp_mono' {f g : Prob α} (u v : α → ℝ) (h : ∀ x, f.prob x * u x ≤ g.prob x * v x) :

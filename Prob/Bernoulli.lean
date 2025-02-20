@@ -47,6 +47,13 @@ lemma bernoulli_prob_true {p : ℝ} (m : p ∈ Icc 0 1) : (bernoulli p).prob tru
 lemma bernoulli_prob_false {p : ℝ} (m : p ∈ Icc 0 1) : (bernoulli p).prob false = 1-p := by
   simp only [bool_prob_false_of_true, bernoulli_prob_true m]
 
+/-- `bernoulli` is the left inverse of `prob true` -/
+@[simp] lemma bernoulli_prob_true_eq {p : Prob Bool} : bernoulli (p.prob true) = p := by
+  ext x
+  induction' x
+  · simp only [bernoulli_prob_false (p.prob_mem_Icc _), bool_prob_false_of_true]
+  · simp only [bernoulli_prob_true (p.prob_mem_Icc _)]
+
 /-- 1/2 ∈ [0,1] -/
 lemma half_mem_Icc : (1/2 : ℝ) ∈ Icc 0 1 := by norm_num
 
