@@ -15,13 +15,13 @@ open scoped Real
 open Set
 noncomputable section
 
-variable {ι I : Type}
-variable {ω : ι → Type}
+variable {I : Type}
+variable {ι : I → Type} {ω : {i : I} → ι i → Type}
 variable {s t : Set I}
 variable {α β γ : Type}
 
 /-- A stochastic computation factored into a random draw and a deterministic followup. -/
-structure Comp.Factor (ι : Type) (ω : ι → Type) (s : Set I) (α : Type) : Type 1 where
+structure Comp.Factor (ι : I → Type) (ω : {i : I} → ι i → Type) (s : Set I) (α : Type) : Type 1 where
   /-- The type of the random draw. -/
   β : Type
   /-- The probability distribution of the random draw. -/
@@ -31,7 +31,7 @@ structure Comp.Factor (ι : Type) (ω : ι → Type) (s : Set I) (α : Type) : T
 
 /-- Factor a stochastic computation into a single random draw followed by a deterministic
     computation. No effort is made to optimise the random draw. -/
-def Comp.factor [∀ x, Fintype (ω x)] (f : Comp ι ω s α) : Comp.Factor ι ω s α := match f with
+def Comp.factor [∀ i (x : ι i), Fintype (ω x)] (f : Comp ι ω s α) : Comp.Factor ι ω s α := match f with
   | .pure' x => ⟨Unit, pure (), fun _ ↦ pure x⟩
   | .sample' p f =>
     let β := Σ x, (f x).factor.β
@@ -45,7 +45,7 @@ def Comp.factor [∀ x, Fintype (ω x)] (f : Comp ι ω s α) : Comp.Factor ι �
     ⟨β, p, f⟩
 
 /-- If we put the `Comp.factor` pieces back together, we get the original computation. -/
-def Comp.run_factor [∀ x, Fintype (ω x)] (f : Comp ι ω s α) (o : I → (x : ι) → ω x) :
+def Comp.run_factor [∀ i (x : ι i), Fintype (ω x)] (f : Comp ι ω s α) (o : (i : I) → (x : ι i) → ω x) :
     (do let x ← f.factor.p; return (f.factor.f x).run o) = f.run fun i x ↦ pure (o i x) := by
   induction' f with x β u v h j m y f h
   · simp only [factor, DComp.run_pure, bind_pure_comp, map_pure]
