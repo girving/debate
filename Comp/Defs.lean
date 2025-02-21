@@ -18,8 +18,7 @@ open Set
 noncomputable section
 
 variable {n : ℕ}
-variable {ι I : Type}
-variable {ω : ι → Type}
+variable {I : Type} {ι : I → Type} {ω : {o : I} → ι o → Type}
 variable {s t : Set I}
 variable {α β γ : Type}
 
@@ -27,16 +26,16 @@ variable {α β γ : Type}
     Importantly, the computation does not know the oracle, so we can model query complexity.
     The `Comp` constructors are not very user friendly due to kernel restrictions on inductive,
     but we replace them with clean ones below. -/
-inductive Comp (ι : Type) (ω : ι → Type) (s : Set I) (α : Type) : Type where
+inductive Comp (ι : I → Type) (ω : {o : I} → ι o → Type) (s : Set I) (α : Type) : Type where
   /-- Return a result with no computation -/
   | pure' : α → Comp ι ω s α
   /-- Sample a value with some probability distribution, then continue -/
   | sample' : {n : ℕ} → Prob (Fin n) → (Fin n → Comp ι ω s α) → Comp ι ω s α
   /-- Query an oracle `o ∈ s`, and branch on the result -/
-  | query' : (o : I) → o ∈ s → (y : ι) → ((ω y) → Comp ι ω s α) → Comp ι ω s α
+  | query' : (o : I) → o ∈ s → (y : ι o) → ((ω y) → Comp ι ω s α) → Comp ι ω s α
 
-/-- `Comp` where all oracles return `Bool` -/
-abbrev BComp (ι : Type) {I : Type} (s : Set I) (α : Type) := Comp ι (fun _ ↦ Bool) s α
+/-- `Comp` where all oracles accept `ι` and return `Bool` -/
+abbrev BComp (ι : Type) {I : Type} (s : Set I) (α : Type) := Comp (fun _ => ι) (fun _ ↦ Bool) s α
 
 namespace Comp
 
@@ -60,11 +59,11 @@ instance : Coe (Prob α) (Comp ι ω s α) where
   coe p := .sample p pure
 
 /-- The simplest case of `Comp.query'` -/
-def query (i : I) (y : ι) : Comp ι ω {i} (ω y) :=
+def query (i : I) (y : ι i) : Comp ι ω {i} (ω y) :=
   Comp.query' i (mem_singleton _) y pure
 
 /-- The value and query counts of a `Comp ι s`, once we supply oracles -/
-def run (f : Comp ι ω s α) (o : I → Oracle ι ω) : Prob (α × (I → ℕ)) := match f with
+def run (f : Comp ι ω s α) (o : (i : I) → Oracle (ι i) ω) : Prob (α × (I → ℕ)) := match f with
   | .pure' x => pure (x, fun _ => 0)
   | .sample' f g => f >>= fun x ↦ (g x).run o
   | .query' i _ y f => do
@@ -73,20 +72,14 @@ def run (f : Comp ι ω s α) (o : I → Oracle ι ω) : Prob (α × (I → ℕ)
     return (z, c + fun j => if j = i then 1 else 0)
 
 /-- The value of a `Comp` -/
-def prob (f : Comp ι ω s α) (o : I → Oracle ι ω) : Prob α :=
+def prob (f : Comp ι ω s α) (o : (i : I) → Oracle (ι i) ω) : Prob α :=
   Prod.fst <$> f.run o
 
-/-- The value of a `Comp` when all oracles are the same -/
-@[simp] def prob' (f : Comp ι ω s α) (o : Oracle ι ω) : Prob α :=
-  f.prob fun _ ↦ o
 
 /-- The expected query cost of a `Comp` -/
-def cost (f : Comp ι ω s α) (o : I → Oracle ι ω) (i : I) : ℝ :=
+def cost (f : Comp ι ω s α) (o : (i : I) → Oracle (ι i) ω) (i : I) : ℝ :=
   (f.run o).exp fun (_,c) ↦ c i
 
-/-- The expected query cost of a `Comp` when all oracles are the same. -/
-def cost' (f : Comp ι ω s α) (o : Oracle ι ω) : I → ℝ :=
-  f.cost fun _ ↦ o
 
 /-- Allow more oracles in a computation -/
 def allow (f : Comp ι ω s α) (st : s ⊆ t) : Comp ι ω t α := match f with
@@ -100,7 +93,20 @@ def allow_all (f : Comp ι ω s α) : Comp ι ω (@univ I) α :=
 
 /-- The worst-case query cost of a `Comp`.
     For simplicity, we do not check for zero probabilities, so it is sometimes an overestimate. -/
-def worst [∀ x, Fintype (ω x)] (f : Comp ι ω s α) : ℕ := match f with
+def worst [∀ (i) (x : ι i), Fintype (ω x)] (f : Comp ι ω s α) : ℕ := match f with
 | .pure' _ => 0
 | .sample' _ f => Finset.univ.sup fun x ↦ (f x).worst
 | .query' _ _ _ f => 1 + Finset.univ.sup fun x ↦ (f x).worst
+
+section
+variable {ι : Type} {ω : ι → Type}
+
+/-- The value of a `Comp` when all oracles are the same -/
+@[simp] def prob' (f : Comp (fun _ => ι) ω s α) (o : Oracle ι ω) : Prob α :=
+  f.prob fun _ ↦ o
+
+/-- The expected query cost of a `Comp` when all oracles are the same. -/
+def cost' (f : Comp (fun _ => ι) ω s α) (o : Oracle ι ω) : I → ℝ :=
+  f.cost fun _ ↦ o
+
+end

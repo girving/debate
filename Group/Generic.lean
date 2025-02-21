@@ -27,7 +27,7 @@ inductive Op (α : Type) where
 | inv : α → Op α
 
 /-- A generic group algorithm operates on a type `α`, treating it as a group via oracle calls -/
-abbrev GComp (α β : Type) := Comp (Op α) (fun _ ↦ α) u β
+abbrev GComp (α β : Type) := Comp (fun _ => Op α) (fun _ ↦ α) u β
 
 /-- A generic group algorithm operates on a type `α`, treating it as a group via oracle calls -/
-abbrev GDComp (α β : Type) := DComp (Op α) (fun _ ↦ α) u β
+abbrev GDComp (α β : Type) := DComp (fun _ => Op α) (fun _ ↦ α) u β

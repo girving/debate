@@ -1,4 +1,5 @@
 import DComp.Basic
+import Comp.Basic
 
 /-!
 ## Lift a deterministic computation to a stochastic one
@@ -12,8 +13,8 @@ noncomputable section
 namespace DComp
 
 variable {n : ℕ}
-variable {ι I : Type}
-variable {ω : ι → Type}
+variable {I : Type} {ι : I → Type}
+variable {ω : {i : I} → ι i → Type}
 variable {s t : Set I}
 variable {α β γ : Type}
 
@@ -36,9 +37,9 @@ instance : Coe (DComp ι ω s α) (Comp ι ω s α) where
 
 @[simp] lemma coe_pure' (x : α) : ((pure' x : DComp ι ω s α) : Comp ι ω s α) = pure x := rfl
 @[simp] lemma coe_pure (x : α) : ((pure x : DComp ι ω s α) : Comp ι ω s α) = pure x := rfl
-@[simp] lemma coe_query' (i : I) (m : i ∈ s) (y : ι) (f : ω y → DComp ι ω s α) :
+@[simp] lemma coe_query' (i : I) (m : i ∈ s) (y : ι i) (f : ω y → DComp ι ω s α) :
     ((query' i m y f : DComp ι ω s α) : Comp ι ω s α) = Comp.query' i m y fun x ↦ f x := rfl
-@[simp] lemma coe_query (i : I) (y : ι) :
+@[simp] lemma coe_query (i : I) (y : ι i) :
     ((query i y : DComp ι ω {i} (ω y)) : Comp ι ω {i} (ω y)) = Comp.query i y := rfl
 @[simp] lemma coe_allow (f : DComp ι ω s α) (st : s ⊆ t) :
     (f.allow st : Comp ι ω t α) = f.allow st := rfl

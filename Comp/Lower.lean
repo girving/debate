@@ -16,8 +16,8 @@ variable {α β : Type}
 theorem Comp.I_le_cost (p : Prob (BOracle α)) (f : BComp α (univ : Set Unit) β) :
     (do let o ← p; let r ← f.prob' o; return (o, r)).I ≤ p.exp fun o ↦ f.cost' o () := by
   induction' f with x β f g' h j m y f h generalizing p
-  · simp only [prob', prob_pure', pure_bind, Prob.I_const, cost'_pure', Prob.exp_const, le_refl]
-  · simp only [prob', prob_sample', bind_assoc, cost'_sample]
+  · simp only [prob', cost', cost_pure', prob_pure', pure_bind, Prob.I_const, Prob.exp_const, le_refl]
+  · simp only [prob', cost', prob_sample', bind_assoc, cost_sample']
     refine le_trans (Prob.I_bind_le_exp' _ _ _) ?_
     rw [Prob.exp_comm]
     exact Prob.exp_mono fun _ _ ↦ h _ _
