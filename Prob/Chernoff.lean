@@ -146,7 +146,7 @@ lemma chernoff_count_le (f : Prob Bool) (n : ℕ) {t : ℝ} (t0 : 0 ≤ t) :
     split; rfl; norm_num
   have h : ∀ s, 0 < s → (count f n).pr (fun x ↦ n * p + t ≤ x) ≤ (-s*t + n * s^2 / 8).exp := by
     intros s s0
-    simp only [←@mul_le_mul_left _ _ (_ * _ + _) _ _ _ _ _ _ s0, ←@Real.exp_le_exp (_ * _) _]
+    simp only [← mul_le_mul_left (b := _ * _ + _) s0, ← Real.exp_le_exp (x := _ * _)]
     apply le_trans (markov' _ _ (fun _ _ ↦ le_of_lt (Real.exp_pos _)) (Real.exp_pos _))
     simp only [exp_count]
     have le := hoeffdings_lemma' f (le_of_lt s0)

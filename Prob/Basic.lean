@@ -185,7 +185,7 @@ lemma le_prob_bind_of_cut {f : Prob α} {g : α → Prob β} (x : α) {y : β} :
   simp only [prob_bind]
   have p : ∀ x, 0 ≤ f.prob x * (g x).prob y := λ _ ↦ mul_nonneg (prob_nonneg _) (prob_nonneg _)
   by_cases m : x ∈ f.supp
-  · exact @Finset.single_le_sum _ _ _ (λ x ↦ f.prob x * (g x).prob y) _ (λ _ _ ↦ p _) _ m
+  · exact Finset.single_le_sum (f := fun x ↦ f.prob x * (g x).prob y) (hf := fun _ _ ↦ p _) m
   · simp only [mem_iff, not_not] at m
     simp only [m, zero_mul]
     exact Finset.sum_nonneg (λ _ _ ↦ p _)

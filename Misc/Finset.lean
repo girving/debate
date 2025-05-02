@@ -1,4 +1,6 @@
+import Mathlib.Algebra.Order.BigOperators.Ring.Finset
 import Mathlib.Topology.Algebra.InfiniteSum.Basic
+import Mathlib.Data.ENNReal.BigOperators
 import Mathlib.Data.ENNReal.Operations
 
 /-!
@@ -55,18 +57,18 @@ lemma Finset.sum_le_sum_of_map {s : Finset α} {t : Finset β} {u : α → ℝ} 
 lemma Finset.sum_ofReal {s : Finset α} {f : α → ℝ} (f0 : ∀ x, 0 ≤ f x) :
     s.sum (fun x => ENNReal.ofReal (f x)) = .ofReal (s.sum f) := by
   lift f to α → ℝ≥0 using f0
-  simp only [ENNReal.ofReal_coe_nnreal, ←ENNReal.coe_finset_sum, ←NNReal.coe_sum]
+  simp only [ENNReal.ofReal_coe_nnreal, ← ENNReal.coe_finset_sum, ← NNReal.coe_sum]
 
 /-- `Finset.sum` of finite `ENNReals` is finite -/
 lemma Finset.sum_ne_top {s : Finset α} {f : α → ENNReal} (ft : ∀ x, f x ≠ ⊤) : s.sum f ≠ ⊤ := by
   lift f to α → ℝ≥0 using ft
-  simpa only [←ENNReal.coe_finset_sum] using ENNReal.coe_ne_top
+  simpa only [← ENNReal.coe_finset_sum] using ENNReal.coe_ne_top
 
 /-- `ENNReal.ofReal` commutes with `Finset.sum` for finite maps -/
 lemma Finset.sum_toReal {s : Finset α} {f : α → ENNReal} (ft : ∀ x, f x ≠ ⊤) :
     s.sum (fun x => ENNReal.toReal (f x)) = ENNReal.toReal (s.sum f) := by
   lift f to α → ℝ≥0 using ft
-  simp only [←ENNReal.coe_finset_sum, ←NNReal.coe_sum, ENNReal.coe_toReal]
+  simp only [← ENNReal.coe_finset_sum, ← NNReal.coe_sum, ENNReal.coe_toReal]
 
 /-- `Finset` sums are the same as `HasSum` if the support is in the set -/
 lemma Finset.hasSum_sum [AddCommMonoid β] [TopologicalSpace β] {s : Finset α} {f : α → β}

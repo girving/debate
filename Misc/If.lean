@@ -68,4 +68,4 @@ lemma ite_eq_delta (x y : α) {d : Decidable (x = y)} : @ite _ (x = y) d 1 0 = d
 
 /-- `delta` splits for pairs -/
 @[simp] lemma delta_pair (x y : α) (z w : β) : delta (x, z) (y, w) = delta x y * delta z w := by
-  simp only [delta, Prod.mk.inj_iff, ite_and_one_zero]
+  simp only [delta, Prod.mk_inj, ite_and_one_zero]

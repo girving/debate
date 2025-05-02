@@ -1,5 +1,6 @@
 import Comp.Basic
 import Comp.Lower
+import Mathlib.Data.Fintype.Perm
 import Misc.If
 
 /-!

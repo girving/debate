@@ -389,7 +389,7 @@ variable [∀ x, Fintype (ω x)]
 
 /-- `query` makes one query -/
 @[simp] lemma worst_query (i : I) (y : ι) : (query i y : Comp ι ω {i} (ω y)).worst = 1 := by
-  simp only [query, worst_query', worst_pure, add_right_eq_self]
+  simp only [query, worst_query', worst_pure, add_eq_left]
   apply Finset.sup_bot
 
 /-- Non-oracle computations are free -/

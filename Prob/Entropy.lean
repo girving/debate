@@ -318,7 +318,7 @@ lemma map_I_eq_I (p : Prob (α × β)) (f : α → γ) (fi : f.Injective) :
 @[simp] lemma I_const (p : Prob α) (y : β) : (p >>= fun x ↦ pure (x,y)).I = 0 := by
   simp only [I_eq_H, map_bind, map_pure, bind_pure, bind_const, H_pure, add_zero, sub_eq_zero]
   rw [← map_eq_pure_bind, H_map_eq]
-  apply Prod.mk.inj_right
+  apply Prod.mk_left_injective
 
 /-- Mutual information is zero for independent variables -/
 @[simp] lemma I_bind_eq_zero (p : Prob α) (q : Prob β) :

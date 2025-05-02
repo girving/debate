@@ -1,4 +1,4 @@
-import Mathlib.Algebra.BigOperators.Finsupp
+import Mathlib.Algebra.BigOperators.Finsupp.Basic
 import Mathlib.Algebra.Module.BigOperators
 
 /-!
