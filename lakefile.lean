@@ -14,11 +14,8 @@ require mathlib from git "https://github.com/leanprover-community/mathlib4"
 lean_lib Debate
 
 lean_lib Prob
-
 lean_lib Comp
-
 lean_lib DComp
-
 lean_lib Group
-
+lean_lib Learn
 lean_lib Misc
