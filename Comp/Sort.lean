@@ -370,18 +370,8 @@ lemma Nat.le_ceil_log2 (n : ℕ) : n ≤ 2 ^ n.ceil_log2 := by
 
 /-- `Nat.log2` is monotonic -/
 lemma Nat.log2_le_log2 {a b : ℕ} (ab : a ≤ b) : a.log2 ≤ b.log2 := by
-  induction' b using Nat.strong_induction_on with b h generalizing a
-  rw [Nat.log2]
-  nth_rw 2 [Nat.log2]
-  by_cases a2 : a < 2
-  · by_cases a0 : a = 0
-    · simp [a0]
-    · have a1 : a = 1 := by omega
-      simp [a1]
-  · have b2 : 2 ≤ b := by omega
-    simp only [not_lt.mp a2, ↓reduceIte, b2, add_le_add_iff_right]
-    apply h
-    all_goals omega
+  simp only [Nat.log2_eq_log_two]
+  exact Nat.log_monotone (b := 2) ab
 
 /-- `Nat.log2` is monotonic -/
 lemma Nat.ceil_log2_le_ceil_log2 {a b : ℕ} (ab : a ≤ b) : a.ceil_log2 ≤ b.ceil_log2 := by
