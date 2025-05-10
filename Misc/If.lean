@@ -43,6 +43,13 @@ lemma if_bind (c : Prop) (x y : m α) (z : α → m β) {h : Decidable c} :
   by_cases p : c
   all_goals simp only [p, ↓reduceIte]
 
+lemma if_or_eq_add {a b : Prop} {d : Decidable (a ∨ b)} (h : ¬a ∨ ¬b) {u : ℝ} :
+    @ite _ (a ∨ b) d u 0 = @ite _ a (Classical.dec _) u 0 + @ite _ b (Classical.dec _) u 0 := by
+  aesop
+
+/-- The sign of a real number, treating zero as positive -/
+noncomputable def sgn (x : ℝ) : ℝ := if 0 ≤ x then 1 else -1
+
 /-!
 ### Kronecker delta
 

@@ -1,4 +1,5 @@
 import Prob.Basic
+import Misc.Bool
 import Misc.Finset
 import Misc.If
 
@@ -437,4 +438,11 @@ lemma sum_pr_eq_pr_and (f : Prob α) (p : β → α → Prop) (s : Finset β)
       specialize d b c x
       exact d (Or.inr bm) (Or.inr cm) pbx pcx
 
-end Prob
+/-- Split an `exp` into two parts based on a predicate -/
+lemma exp_eq_exp_add_exp {f : Prob α} {u : α → V} (p : α → Prop) :
+    f.exp u = f.exp (fun x ↦ if p x then u x else 0) + f.exp (fun x ↦ if ¬p x then u x else 0) := by
+  simp only [ite_not, ← exp_add, ite_add_ite, add_zero, zero_add, ite_self]
+
+/-- Expectations over bools are probabilities -/
+@[simp] lemma exp_bool_toReal (p : Prob Bool) : p.exp Bool.toReal = p.prob true := by
+  simp [exp_bool]
