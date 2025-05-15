@@ -2,6 +2,7 @@ import Comp.Basic
 import Comp.Lower
 import Mathlib.Data.Fintype.Perm
 import Misc.If
+import Prob.Uniform
 
 /-!
 # Sorting has `Θ(n log n)` query complexity

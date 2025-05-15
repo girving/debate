@@ -1,4 +1,5 @@
 import Mathlib.Analysis.Convex.Jensen
+import Mathlib.Analysis.Normed.Module.Convex
 import Mathlib.Analysis.Convex.SpecificFunctions.Basic
 import Mathlib.Analysis.SpecialFunctions.Log.Base
 import Prob.Arith
@@ -36,3 +37,8 @@ lemma concaveOn_logb_Ioi {b : ℝ} (b1 : 1 ≤ b) : ConcaveOn ℝ (Ioi 0) (logb 
   apply strictConcaveOn_log_Ioi.concaveOn.smul
   simp only [inv_nonneg]
   exact Real.log_nonneg b1
+
+/-- Special case for absolute value -/
+lemma abs_exp_le_exp_abs (p : Prob α) (g : α → ℝ) : |p.exp g| ≤ p.exp (fun x ↦ |g x|) := by
+  simp only [← Real.norm_eq_abs]
+  exact map_exp_le (s := univ) _ convexOn_univ_norm (by simp)

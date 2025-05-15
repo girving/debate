@@ -2,6 +2,7 @@ import Mathlib.Algebra.Order.BigOperators.Ring.Finset
 import Mathlib.Topology.Algebra.InfiniteSum.Basic
 import Mathlib.Data.ENNReal.BigOperators
 import Mathlib.Data.ENNReal.Operations
+import Mathlib.Tactic.Bound
 
 /-!
 # `Finset` facts
@@ -13,9 +14,6 @@ open scoped Real NNReal
 noncomputable section
 
 variable {α β γ : Type}
-
--- TODO: Upstream
-attribute [bound] Finset.prod_nonneg
 
 /-- We can swap one set for another in `Finset.sum` if the function is zero off the intersection -/
 lemma Finset.sum_eq_sum_zero_off_inter {s0 s1 : Finset α} {g : α → ℝ}
@@ -107,3 +105,61 @@ lemma Finset.Pi.cons_mem {β : α → Type} [DecidableEq α] {s : Finset α} {a 
     Finset.Pi.cons s a b f c h = f c c.2 := by
   rw [Finset.Pi.cons_ne]
   aesop
+
+lemma Finset.card_sup_le_sum_card (s : Finset α) (f : α → Finset β) :
+    (s.sup f).card ≤ ∑ x ∈ s, (f x).card := by
+  induction' s using Finset.induction with a s m h
+  · simp
+  · simp only [Finset.sup_insert, Finset.sup_eq_union, m, not_false_eq_true, Finset.sum_insert]
+    exact le_trans (Finset.card_union_le _ _) (by bound)
+
+lemma Finset.card_sdiff_le (s t : Finset α) : (s \ t).card ≤ s.card := by
+  have h := Finset.card_sdiff_add_card_inter (s := s) (t := t)
+  omega
+
+lemma Finset.sup_sdiff_distrib (s : Finset β) (f : β → Finset α) (t : Finset α) :
+    s.sup f \ t = s.sup fun x ↦ f x \ t := by
+  induction' s using Finset.induction with a s m h
+  · simp
+  · simp [Finset.union_sdiff_distrib, h]
+
+lemma Finset.sup_union_distrib (s : Finset α) (f g : α → Finset β) :
+    (s.sup f ∪ s.sup g) = s.sup fun x ↦ f x ∪ g x := by
+  induction' s using Finset.induction with a s m h generalizing g
+  · simp
+  · simp only [sup_insert, sup_eq_union, ← union_assoc, union_comm _ (g a)]
+    simp only [union_assoc, h]
+
+lemma Finset.sup_const_union (s : Finset α) (n : s.Nonempty) (f : Finset β) (g : α → Finset β) :
+    s.sup (fun x ↦ f ∪ g x) = f ∪ s.sup g := by
+  rw [← Finset.sup_union_distrib s (f := fun _ ↦ f) g, Finset.sup_const n]
+
+lemma Finset.sup_union_const (s : Finset α) (n : s.Nonempty) (f : α → Finset β) (g : Finset β) :
+    s.sup (fun x ↦ f x ∪ g) = s.sup f ∪ g := by
+  rw [← Finset.sup_union_distrib s f (g := fun _ ↦ g), Finset.sup_const n]
+
+lemma Finset.univ_sup_const_union [Fintype α] [Nonempty α] (f : Finset β) (g : α → Finset β) :
+    Finset.univ.sup (fun x ↦ f ∪ g x) = f ∪ Finset.univ.sup g := by
+  apply Finset.sup_const_union; simp
+
+lemma Finset.univ_sup_union_const [Fintype α] [Nonempty α] (f : α → Finset β) (g : Finset β) :
+    Finset.univ.sup (fun x ↦ f x ∪ g) = Finset.univ.sup f ∪ g := by
+  apply Finset.sup_union_const; simp
+
+@[simp] lemma Finset.union_singleton {s : Finset α} {a : α} : s ∪ {a} = insert a s := by
+  ext x; aesop
+
+@[simp] lemma Finset.singleton_union {s : Finset α} {a : α} : {a} ∪ s = insert a s := by
+  rw [union_comm, Finset.union_singleton]
+
+@[simp] lemma Finset.univ_sup_comp_equivFin_symm [Fintype β] [SemilatticeSup α] [OrderBot α]
+    (f : β → α) : univ.sup (fun x ↦ f ((Fintype.equivFin β).symm x)) = univ.sup f := by
+  set i : Fin (Fintype.card β) ↪ β := ↑(Fintype.equivFin β).symm
+  trans Finset.univ.sup (f ∘ i)
+  · rfl
+  · rw [← Finset.sup_map]
+    exact Finset.sup_congr (by simp [i]) (fun x _ ↦ rfl)
+
+@[simp] lemma Finset.univ_sup_const [Fintype α] [Nonempty α] [SemilatticeSup β] [OrderBot β]
+    (x : β) : (.univ : Finset α).sup (fun _ ↦ x) = x := by
+  apply Finset.sup_const; simp

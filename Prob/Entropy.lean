@@ -5,7 +5,6 @@ import Mathlib.Analysis.SpecialFunctions.Log.Base
 import Mathlib.Analysis.SpecialFunctions.Log.NegMulLog
 import Mathlib.Data.Finset.Functor
 import Prob.Cond
-import Prob.Uniform
 import Prob.When
 
 /-!
@@ -545,13 +544,3 @@ lemma H_le_one (p : Prob Bool) : p.H ≤ 1 := by
     trans (Finset.univ : Finset Bool).card
     · exact Finset.card_le_card (Finset.subset_univ _)
     · simp only [Finset.card_univ, Fintype.card_bool, le_refl]
-
-/-!
-### The entropy of a uniform distribution
--/
-
-/-- Uniform distributions have `H = log supp.card` -/
-@[simp] lemma H_uniform (s : Finset α) (n : s.Nonempty) : (uniform s n).H = logb 2 s.card := by
-  trans (uniform s n).exp fun _ ↦ -logb 2 s.card⁻¹
-  · exact exp_congr fun _ px ↦ by rw [prob_uniform px]
-  · simp only [Real.logb_inv, neg_neg, exp_const]

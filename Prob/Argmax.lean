@@ -55,3 +55,11 @@ lemma prob_argmax_ne_zero (p : Prob α) : p.prob p.argmax ≠ 0 := by
     rw [← t]
     exact le_prob_argmax p x
   simp only [z, zero_ne_one, not_false_eq_true]
+
+/-- `argmax` has positive probability -/
+@[bound] lemma prob_argmax_pos (p : Prob α) : 0 < p.prob (p.argmax) :=
+  p.prob_argmax_ne_zero.symm.lt_of_le p.prob_nonneg
+
+lemma argmax_mem_supp (p : Prob α) : p.argmax ∈ p.supp := by
+  simp only [supp, Finsupp.mem_support_iff]
+  exact prob_argmax_ne_zero p

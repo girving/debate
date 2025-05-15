@@ -446,3 +446,19 @@ lemma exp_eq_exp_add_exp {f : Prob α} {u : α → V} (p : α → Prop) :
 /-- Expectations over bools are probabilities -/
 @[simp] lemma exp_bool_toReal (p : Prob Bool) : p.exp Bool.toReal = p.prob true := by
   simp [exp_bool]
+
+/-- Importance sampling lemma -/
+lemma exp_div_smul {p q : Prob α} (h : ∀ x, p.prob x ≠ 0 → q.prob x ≠ 0) (u : α → V) :
+    q.exp (fun x ↦ (p.prob x / q.prob x) • u x) = p.exp u := by
+  simp only [exp, Finsupp.sum]
+  trans ∑ x ∈ q.prob.support, p.prob x • u x
+  · refine Finset.sum_congr rfl fun x m ↦ ?_
+    simp only [Finsupp.mem_support_iff] at m
+    simp only [smul_smul, mul_div_cancel₀ _ m]
+  · apply Finset.sum_congr_of_eq_on_inter
+    all_goals aesop
+
+/-- Importance sampling lemma, special case -/
+lemma exp_div_eq_one {p q : Prob α} (h : ∀ x, p.prob x ≠ 0 → q.prob x ≠ 0) :
+    q.exp (fun x ↦ p.prob x / q.prob x) = 1 := by
+  simpa using exp_div_smul h (fun _ ↦ (1 : ℝ))

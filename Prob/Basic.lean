@@ -19,7 +19,7 @@ namespace Prob
 -- Monad details
 lemma prob_pure' (x : α) : (pure x : Prob α).prob = Finsupp.single x 1 := rfl
 lemma prob_bind' (f : Prob α) (g : α → Prob β) :
-    (f >>= g).prob = f.prob.sum (λ x p ↦ p • (g x).prob) := rfl
+    (f >>= g).prob = f.prob.sum (fun x p ↦ p • (g x).prob) := rfl
 
 /-- (pure x).prob is the indicator function on {x} -/
 lemma prob_pure (x y : α) : (pure x : Prob α).prob y = if y = x then 1 else 0 := by
@@ -30,20 +30,20 @@ lemma prob_pure (x y : α) : (pure x : Prob α).prob y = if y = x then 1 else 0 
   simp only [exp, prob_pure', zero_smul, Finsupp.sum_single_index, one_smul]
 
 -- Basic definitions
-lemma map_eq (f : α → β) (x : Prob α) : f <$> x = x >>= (λ x ↦ pure (f x)) := rfl
-lemma seq_eq (f : Prob (α → β)) (x : Prob α) : f <*> x = f >>= (λ f ↦ f <$> x) := rfl
-lemma seqLeft_eq (x : Prob α) (y : Prob β) : x <* y = x >>= (λ x ↦ y >>= λ _ ↦ pure x) := rfl
-lemma seqRight_eq (x : Prob α) (y : Prob β) : x *> y = x >>= (λ _ ↦ y) := rfl
+lemma map_eq (f : α → β) (x : Prob α) : f <$> x = x >>= (fun x ↦ pure (f x)) := rfl
+lemma seq_eq (f : Prob (α → β)) (x : Prob α) : f <*> x = f >>= (fun f ↦ f <$> x) := rfl
+lemma seqLeft_eq (x : Prob α) (y : Prob β) : x <* y = x >>= (fun x ↦ y >>= fun _ ↦ pure x) := rfl
+lemma seqRight_eq (x : Prob α) (y : Prob β) : x *> y = x >>= (fun _ ↦ y) := rfl
 
 /-- (f >>= g).prob as an exp -/
 lemma prob_bind (f : Prob α) (g : α → Prob β) (y : β) :
-    (f >>= g).prob y = f.exp (λ x ↦ (g x).prob y) := by
+    (f >>= g).prob y = f.exp (fun x ↦ (g x).prob y) := by
   simp only [Prob.prob, prob_bind', Prob.exp, Finsupp.sum_apply]
   apply Finsupp.sum_congr; intro x _; rw [Finsupp.coe_smul, Pi.smul_apply, smul_eq_mul]
 
 /-- bind.exp is iterated exp -/
 lemma exp_bind (f : Prob α) (g : α → Prob β) (h : β → V) :
-    (f >>= g).exp h = f.exp (λ x ↦ (g x).exp h) := by
+    (f >>= g).exp h = f.exp (fun x ↦ (g x).exp h) := by
   simp only [exp, prob_bind']
   rw [Finsupp.sum_sum_index]
   · apply Finsupp.sum_congr; intro x _; rw [Finsupp.sum_smul_index]
@@ -60,7 +60,7 @@ lemma left_id (f : Prob α) : f >>= pure = f := by
 lemma right_id (x : α) (f : α → Prob β) : pure x >>= f = f x := by
   ext y; simp only [prob_bind, prob_pure, exp_pure]
 lemma assoc (f : Prob α) (g : α → Prob β) (h : β → Prob γ) :
-    f >>= g >>= h = f >>= (λ x ↦ g x >>= h) := by
+    f >>= g >>= h = f >>= (fun x ↦ g x >>= h) := by
   ext z; simp only [prob_bind, exp_bind, Finsupp.sum_apply]
 
 /-- Prob is a lawful monad -/
@@ -71,7 +71,7 @@ instance : LawfulMonad Prob := LawfulMonad.mk'
 
 /-- Independent expectations can be reordered -/
 lemma exp_comm (f : Prob α) (g : Prob β) (h : α → β → V) :
-    f.exp (λ x ↦ g.exp (λ y ↦ h x y)) = g.exp (λ y ↦ f.exp (λ x ↦ h x y)) := by
+    f.exp (fun x ↦ g.exp (fun y ↦ h x y)) = g.exp (fun y ↦ f.exp (fun x ↦ h x y)) := by
   simp only [exp, Finsupp.smul_sum]
   rw [Finsupp.sum_comm]
   refine Finsupp.sum_congr fun _ _ ↦ ?_
@@ -81,27 +81,27 @@ lemma exp_comm (f : Prob α) (g : Prob β) (h : α → β → V) :
 
 /-- Independent computations can be reordered -/
 lemma bind_comm (f : Prob α) (g : Prob β) (h : α → β → Prob γ) :
-    f >>= (λ x ↦ g >>= (λ y ↦ h x y)) = g >>= (λ y ↦ f >>= (λ x ↦ h x y)) := by
+    f >>= (fun x ↦ g >>= (fun y ↦ h x y)) = g >>= (fun y ↦ f >>= (fun x ↦ h x y)) := by
   ext z; simp only [prob_bind]; rw [exp_comm]
 
 /-- Variant of bind_comm when h's are not obviously equal -/
 lemma bind_comm_of_eq (f : Prob α) (g : Prob β) (h0 h1 : α → β → Prob γ) (e : h0 = h1) :
-    f >>= (λ x ↦ g >>= (λ y ↦ h0 x y)) = g >>= (λ y ↦ f >>= (λ x ↦ h1 x y)) := by
+    f >>= (fun x ↦ g >>= (fun y ↦ h0 x y)) = g >>= (fun y ↦ f >>= (fun x ↦ h1 x y)) := by
   rw [e]; apply bind_comm
 
 /-- Constants are their own expectation -/
-@[simp] lemma exp_const (f : Prob α) (x : V) : f.exp (λ _ ↦ x) = x := by
+@[simp] lemma exp_const (f : Prob α) (x : V) : f.exp (fun _ ↦ x) = x := by
   simp only [exp, ← Finsupp.sum_smul, total, one_smul]
 
 /-- We can drop the left side of a bind if it's unused -/
-@[simp] lemma bind_const (f : Prob α) (g : Prob β) : f >>= (λ _ ↦ g) = g := by
+@[simp] lemma bind_const (f : Prob α) (g : Prob β) : f >>= (fun _ ↦ g) = g := by
   ext x; simp only [prob_bind, exp_const]
 
 /-- Map of a constant is pure -/
-lemma map_const (y : β) (x : Prob α) : (λ _ ↦ y) <$> x = pure y := bind_const _ _
+lemma map_const (y : β) (x : Prob α) : (fun _ ↦ y) <$> x = pure y := bind_const _ _
 
 /-- map sums probabilities -/
-lemma prob_map (f : α → β) (x : Prob α) (z : β) : (f <$> x).prob z = x.pr (λ y ↦ f y = z) := by
+lemma prob_map (f : α → β) (x : Prob α) (z : β) : (f <$> x).prob z = x.pr (fun y ↦ f y = z) := by
   simp only [map_eq, prob_bind, pr, prob_pure, eq_comm]
 
 /-- injective map preserves probabilities -/
@@ -139,7 +139,7 @@ lemma exp_congr' {f g : Prob α} {u v : α → V} (h : ∀ x, f.prob x • u x =
   simp only [exp, Finsupp.sum]
   rw [Finset.sum_subset (Finset.subset_union_left (s₁ := f.prob.support) (s₂ := g.prob.support)),
     Finset.sum_subset (Finset.subset_union_right (s₁ := f.prob.support) (s₂ := g.prob.support))]
-  · exact Finset.sum_congr rfl (λ _ _ ↦ h _)
+  · exact Finset.sum_congr rfl (fun _ _ ↦ h _)
   · intro x _ m; simp only [Finsupp.mem_support_iff, not_not] at m; simp only [m, zero_smul]
   · intro x _ m; simp only [Finsupp.mem_support_iff, not_not] at m; simp only [m, zero_smul]
 
@@ -183,12 +183,12 @@ lemma bool_abs_prob_diff {f g : Prob Bool} {x : Bool} (y : Bool) :
 lemma le_prob_bind_of_cut {f : Prob α} {g : α → Prob β} (x : α) {y : β} :
     f.prob x * (g x).prob y ≤ (f >>= g).prob y := by
   simp only [prob_bind]
-  have p : ∀ x, 0 ≤ f.prob x * (g x).prob y := λ _ ↦ mul_nonneg (prob_nonneg _) (prob_nonneg _)
+  have p : ∀ x, 0 ≤ f.prob x * (g x).prob y := fun _ ↦ mul_nonneg (prob_nonneg _) (prob_nonneg _)
   by_cases m : x ∈ f.supp
   · exact Finset.single_le_sum (f := fun x ↦ f.prob x * (g x).prob y) (hf := fun _ _ ↦ p _) m
   · simp only [mem_iff, not_not] at m
     simp only [m, zero_mul]
-    exact Finset.sum_nonneg (λ _ _ ↦ p _)
+    exact Finset.sum_nonneg (fun _ _ ↦ p _)
 
 /-- `p.supp` is never empty -/
 lemma card_supp_ne_zero (p : Prob α) : p.supp.card ≠ 0 := by
@@ -227,11 +227,24 @@ instance [Subsingleton α] : Subsingleton (Prob α) where
     simp only [prob_eq_one]
 
 /-- `Prob` over unique spaces is unique -/
-instance [Unique α] : Unique (Prob α) where
+instance [Inhabited α] [Subsingleton α] : Unique (Prob α) where
   default := pure default
   uniq p := by
     ext x
     simp only [prob_eq_one]
+
+lemma prob_pos {p : Prob α} {x : α} (px : p.prob x ≠ 0) : 0 < p.prob x :=
+  px.symm.lt_of_le (prob_nonneg _)
+
+lemma ne_iff {p q : Prob α} : p ≠ q ↔ ∃ x, p.prob x ≠ q.prob x := by
+  constructor
+  · intro e
+    contrapose e
+    simp only [ne_eq, not_exists, Decidable.not_not] at e ⊢
+    exact Prob.ext_iff.mpr e
+  · simp only [ne_eq, forall_exists_index, not_imp_not]
+    intro _ e
+    simp only [e]
 
 /-!
 ### Tactics
