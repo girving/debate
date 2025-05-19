@@ -102,3 +102,7 @@ lemma reKL_uniform_univ_le (p : Prob α) : p.reKL (uniform_univ α) ≤ log (Fin
       exact mul_le_of_le_one_right p.prob_nonneg (p.prob_le_one x)
     · exact (exp_pos (by bound) ⟨p.argmax, p.prob_argmax_ne_zero, p.prob_argmax_pos⟩).ne'
     · simp
+
+/-- Use uniform as the default probability distribution -/
+instance [Fintype α] [Nonempty α] : Inhabited (Prob α) :=
+  ⟨uniform_univ α⟩
