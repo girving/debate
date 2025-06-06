@@ -418,7 +418,7 @@ lemma sum_pr_eq_pr_and (f : Prob α) (p : β → α → Prop) (s : Finset β)
     (d : ∀ a b x, a ∈ s → b ∈ s → p a x → p b x → a = b) :
     ∑ a ∈ s, f.pr (fun x ↦ p a x) = f.pr (fun x ↦ ∃ a ∈ s, p a x) := by
   induction' s using Finset.induction with a s m h
-  · simp only [Finset.sum_empty, Finset.not_mem_empty, false_and, exists_false, pr_false]
+  · simp only [Finset.sum_empty, Finset.notMem_empty, false_and, exists_false, pr_false]
   · simp only [Finset.mem_insert] at d
     rw [Finset.sum_insert m, h, ← pr_or]
     · simp only [Finset.mem_insert, exists_eq_or_imp]

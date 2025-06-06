@@ -56,8 +56,8 @@ namespace Prob
 attribute [simp, bound] prob_nonneg
 
 -- Basics
-lemma zero_iff {f : Prob α} {x : α} : f.prob x = 0 ↔ x ∉ f.supp := Finsupp.not_mem_support_iff.symm
-lemma zero (f : Prob α) {x : α} (m : x ∉ f.supp) : f.prob x = 0 := Finsupp.not_mem_support_iff.mp m
+lemma zero_iff {f : Prob α} {x : α} : f.prob x = 0 ↔ x ∉ f.supp := Finsupp.notMem_support_iff.symm
+lemma zero (f : Prob α) {x : α} (m : x ∉ f.supp) : f.prob x = 0 := Finsupp.notMem_support_iff.mp m
 lemma mem_iff {f : Prob α} {x : α} : x ∈ f.supp ↔ f.prob x ≠ 0 := Finsupp.mem_support_iff
 lemma mem_iff_pos {f : Prob α} {x : α} : x ∈ f.supp ↔ 0 < f.prob x := by
   rw [f.mem_iff]; constructor; intro e; exact e.symm.lt_of_le f.prob_nonneg; exact ne_of_gt

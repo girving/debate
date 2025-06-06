@@ -22,7 +22,7 @@ variable {d g : ℝ} {s : Set V} {proj : V → V} {η : ℕ → ℝ} {n : ℕ} {
 
 /-- A subgradient of a convex function represents a tangent plane below the function. -/
 def Subgrad (f : V → ℝ) (x : V) (g : V) : Prop :=
-  ∀ y, inner g (y - x) ≤ f y - f x
+  ∀ y, inner ℝ g (y - x) ≤ f y - f x
 
 /-- A projection to a set picks out a closest point in the set. -/
 structure Proj (proj : V → V) (s : Set V) : Prop where
@@ -107,7 +107,7 @@ theorem regret_le (sd : EMetric.diam s ≤ .ofReal d) (p : Proj proj s) (eve : A
     exact EMetric.edist_le_of_diam_le (ogd_mem p xs) ys sd
   -- Apply convexity to express regret in terms of subgradient inner products
   simp only [regret, hm]
-  have le0 : ∀ {n}, (m n).loss (z n) - (m n).loss y ≤ inner (m n).grad (Δ n) := by
+  have le0 : ∀ {n}, (m n).loss (z n) - (m n).loss y ≤ inner ℝ (m n).grad (Δ n) := by
     intro n
     rw [← neg_le_neg_iff, neg_sub, ← inner_neg_right, neg_sub]
     apply (m n).sub
@@ -119,7 +119,7 @@ theorem regret_le (sd : EMetric.diam s ≤ .ofReal d) (p : Proj proj s) (eve : A
   replace g0 : 0 < g := (Ne.symm flat).lt_of_le g0
   have η0 : ∀ n, 0 < η n := by bound
   -- Regret subgradient inner products as an almost telescoping sum
-  have le1 : ∀ {n}, inner (m n).grad (Δ n) ≤
+  have le1 : ∀ {n}, inner ℝ (m n).grad (Δ n) ≤
       2⁻¹ * ((η n)⁻¹ * (‖Δ n‖^2 - ‖Δ (n + 1)‖^2) + η n * g^2) := by
     intro n
     rw [← mul_le_mul_left (η0 n), mul_left_comm (η n), le_inv_mul_iff₀ (by norm_num)]
