@@ -143,6 +143,14 @@ lemma exp_congr' {f g : Prob α} {u v : α → V} (h : ∀ x, f.prob x • u x =
   · intro x _ m; simp only [Finsupp.mem_support_iff, not_not] at m; simp only [m, zero_smul]
   · intro x _ m; simp only [Finsupp.mem_support_iff, not_not] at m; simp only [m, zero_smul]
 
+/-- General congruence for exp where only the probabilities are different -/
+lemma exp_congr_prob {f g : Prob α} {u : α → V} (h : ∀ x, u x ≠ 0 → f.prob x = g.prob x) :
+    f.exp u = g.exp u := by
+  refine exp_congr' fun x ↦ ?_
+  by_cases z : u x = 0
+  · simp only [z, smul_zero]
+  · rw [h _ z]
+
 /-- Congruence for pr -/
 lemma pr_congr {f : Prob α} {p q : α → Prop} (e : ∀ x, f.prob x ≠ 0 → (p x ↔ q x)) :
     f.pr p = f.pr q := by
@@ -232,6 +240,8 @@ instance [Inhabited α] [Subsingleton α] : Unique (Prob α) where
   uniq p := by
     ext x
     simp only [prob_eq_one]
+
+lemma default_eq (α : Type) [Unique α] : (default : Prob α) = pure default := rfl
 
 lemma prob_pos {p : Prob α} {x : α} (px : p.prob x ≠ 0) : 0 < p.prob x :=
   px.symm.lt_of_le (prob_nonneg _)

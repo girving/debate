@@ -14,7 +14,7 @@ namespace Prob
 
 variable {α β γ : Type}
 variable {f g : Prob α}
-variable {p q r : α → Prop}
+variable {p q r s : α → Prop}
 variable {V : Type} [AddCommGroup V] [Module ℝ V]
 variable {u : α → V}
 variable {v : α → ℝ}
@@ -41,8 +41,8 @@ lemma cond_mono (pq : ∀ x, f.prob x ≠ 0 → r x → p x → q x) : f.cond p 
   simp only [cond_eq_cexp]; apply cexp_mono; intro x m; rw [ite_le_ite_iff]; exact pq x m
 
 -- cond is between 0 and 1
-lemma cond_nonneg : 0 ≤ f.cond p q := div_nonneg pr_nonneg pr_nonneg
-lemma cond_le_one : f.cond p q ≤ 1 := by
+@[bound] lemma cond_nonneg : 0 ≤ f.cond p q := div_nonneg pr_nonneg pr_nonneg
+@[bound] lemma cond_le_one : f.cond p q ≤ 1 := by
   refine div_le_one_of_le₀ (pr_mono ?_) pr_nonneg; intro x _; exact And.right
 lemma cond_mem_Icc : f.cond p q ∈ Icc 0 1 := ⟨cond_nonneg, cond_le_one⟩
 
@@ -215,6 +215,13 @@ lemma cexp_const_mul {s : ℝ} : f.cexp (fun x ↦ s • u x) q = s • f.cexp u
 lemma cond_congr {p q r : α → Prop} (pq : ∀ x, f.prob x ≠ 0 → r x → (p x ↔ q x)) :
     f.cond p r = f.cond q r := by
   simp only [cond_eq_cexp]; apply cexp_congr; simp only [ite_one_zero_congr]; exact pq
+
+/-- Congruence for `cond` if both arguments change -/
+lemma cond_congr' (rs : ∀ x, f.prob x ≠ 0 → (r x ↔ s x))
+    (pq : ∀ x, f.prob x ≠ 0 → r x → (p x ↔ q x)) : f.cond p r = f.cond q s := by
+  rw [cond]
+  refine congr_arg₂ _ ?_ ?_
+  all_goals { apply pr_congr; aesop }
 
 /-- f.cond ¬p q = 1 - f.cond p q if f.pr q ≠ 0 -/
 lemma cond_neg (q0 : f.pr q ≠ 0) : f.cond (fun x ↦ ¬p x) q = 1 - f.cond p q := by

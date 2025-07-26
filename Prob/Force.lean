@@ -11,14 +11,13 @@ to treat as a `Prob`.
 noncomputable section
 
 open Classical
-variable {X Y : Type}
-variable [Fintype Y] [Inhabited Y]
+variable {α : Type}
 namespace Prob
 
 /-- Turn a bunch of reals into a distribution, producing something arbitrary if invalid -/
-def force (p : Y → ℝ) : Prob Y :=
-  if h : (∀ x, 0 ≤ p x) ∧ ∑ x, p x = 1 then {
-    prob := ∑ x, .single x (p x),
+def force [n : Nonempty α] (p : α → ℝ) (s : Finset α) : Prob α :=
+  if h : (∀ x ∈ s, 0 ≤ p x) ∧ ∑ x ∈ s, p x = 1 then {
+    prob := ∑ x ∈ s, .single x (p x),
     prob_nonneg := by
       intro x
       simp only [Finsupp.coe_finset_sum, Finset.sum_apply]
@@ -26,17 +25,20 @@ def force (p : Y → ℝ) : Prob Y :=
     total := by
       refine Eq.trans ?_ h.2
       simp only [Finsupp.sum, Finsupp.coe_finset_sum, Finset.sum_apply, Finsupp.single_apply,
-        Finset.sum_ite_eq', Finset.mem_univ, ↓reduceIte]
-      refine Finset.sum_subset (fun _ _ ↦ Finset.mem_univ _) (fun z _ h ↦ ?_)
-      simpa only [Finsupp.mem_support_iff, Finsupp.coe_finset_sum, Finset.sum_apply, ne_eq,
-        Decidable.not_not, Finsupp.single_apply, Finset.sum_ite_eq', Finset.mem_univ,
-        ite_true] using h
-  } else pure default
+        Finset.sum_ite_eq', Finset.sum_ite_mem]
+      refine Finset.sum_subset (by simp) (fun z m n ↦ ?_)
+      simp only [Finset.mem_inter, Finsupp.mem_support_iff, Finsupp.coe_finset_sum,
+        Finset.sum_apply, m, and_true, Decidable.not_not] at n
+      rw [Finset.sum_eq_zero_iff_of_nonneg (by bound)] at n
+      simp only [Finsupp.single_apply, ite_eq_right_iff] at n
+      exact n z m rfl
+  } else pure Classical.ofNonempty
 
 /-- The key property of `force`, for use with `rw` -/
-lemma prob_force (p : Y → ℝ) (h : (∀ x, 0 ≤ p x) ∧ ∑ x, p x = 1) : (force p).prob = p := by
-  ext y
-  simp only [force, h, implies_true, and_self, ↓reduceDIte, Finsupp.coe_finset_sum,
-    Finset.sum_apply]
-  rw [Finset.sum_eq_single (a := y)]
-  all_goals aesop
+lemma prob_force {n : Nonempty α} (p : α → ℝ) (s : Finset α)
+    (h : (∀ x ∈ s, 0 ≤ p x) ∧ ∑ x ∈ s, p x = 1) :
+    (force (n := n) p s).prob = fun x ↦ if x ∈ s then p x else 0 := by
+  ext x
+  simp only [force, h, and_true]
+  split_ifs with h n
+  all_goals simp_all [Finsupp.single_apply]

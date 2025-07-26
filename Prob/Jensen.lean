@@ -1,6 +1,6 @@
 import Mathlib.Analysis.Convex.Jensen
-import Mathlib.Analysis.Normed.Module.Convex
 import Mathlib.Analysis.Convex.SpecificFunctions.Basic
+import Mathlib.Analysis.Normed.Module.Convex
 import Mathlib.Analysis.SpecialFunctions.Log.Base
 import Prob.Arith
 

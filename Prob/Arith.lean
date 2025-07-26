@@ -141,9 +141,9 @@ lemma mean_mul (f g : Prob ℝ) : (f * g).mean = f.mean * g.mean := by
   rfl
 
 -- f.pr is between 0 and 1
-@[bound] lemma pr_nonneg {f : Prob α} {p : α → Prop} : 0 ≤ f.pr p := by
+@[simp, bound] lemma pr_nonneg {f : Prob α} {p : α → Prop} : 0 ≤ f.pr p := by
   simp only [pr]; apply exp_nonneg; intro x _; split; norm_num; rfl
-@[bound] lemma pr_le_one {f : Prob α} {p : α → Prop} : f.pr p ≤ 1 := by
+@[simp, bound] lemma pr_le_one {f : Prob α} {p : α → Prop} : f.pr p ≤ 1 := by
   simp only [pr]; apply le_trans (@exp_mono _ f _ (fun _ ↦ 1) _)
   · simp only [exp_const]; rfl
   · intro x _; split; rfl; norm_num
@@ -462,3 +462,16 @@ lemma exp_div_smul {p q : Prob α} (h : ∀ x, p.prob x ≠ 0 → q.prob x ≠ 0
 lemma exp_div_eq_one {p q : Prob α} (h : ∀ x, p.prob x ≠ 0 → q.prob x ≠ 0) :
     q.exp (fun x ↦ p.prob x / q.prob x) = 1 := by
   simpa using exp_div_smul h (fun _ ↦ (1 : ℝ))
+
+/-- `exp` in terms of `finsum` -/
+lemma exp_eq_finsum (f : Prob α) (u : α → V) : f.exp u = ∑ᶠ x, f.prob x • u x := by
+  simp only [exp, Finsupp.sum, finsum_def]
+  split_ifs with h
+  · symm
+    apply Finset.sum_subset
+    all_goals aesop
+  · contrapose h
+    simp only [Decidable.not_not]
+    refine Finite.Set.subset (s := f.supp) fun x ↦ ?_
+    simp [mem_iff]
+    aesop

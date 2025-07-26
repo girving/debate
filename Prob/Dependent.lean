@@ -1,5 +1,6 @@
 import Mathlib.Tactic.Bound
 import Misc.Bound
+import Misc.Fin
 import Prob.Arith
 
 /-!
@@ -129,7 +130,7 @@ lemma Finset.induction_mem_insert (a : α) (s : Finset α) {p : (x : α) → x �
   · exact diff x m
 
 /-- Sampling everything and then picking is equivalent to picking and then sampling the right one -/
-@[simp] lemma set_pi_exp {β : α → Type} (s : Finset α) (f : (x : α) → Prob (β x)) (x : α)
+@[simp] lemma exp_set_pi {β : α → Type} (s : Finset α) (f : (x : α) → Prob (β x)) (x : α)
     (m : x ∈ s) (g : β x → V) : ((Prob.set_pi s f).exp fun y ↦ g (y x m)) = (f x).exp g := by
   induction' s using Finset.induction_on with a s n h
   · simp at m
@@ -140,16 +141,28 @@ lemma Finset.induction_mem_insert (a : α) (s : Finset α) {p : (x : α) → x �
       simp [Finset.Pi.cons_ne ax, h]
 
 /-- Sampling everything and then picking is equivalent to picking and then sampling the right one -/
-@[simp] lemma pi_exp [Fintype α] {β : α → Type} (f : (x : α) → Prob (β x))
+@[simp] lemma exp_pi [Fintype α] {β : α → Type} (f : (x : α) → Prob (β x))
     (x : α) (g : β x → V) : ((Prob.pi f).exp fun y ↦ g (y x)) = (f x).exp g := by
-  simp only [exp_pi_eq_exp_set_pi, set_pi_exp]
+  simp only [exp_pi_eq_exp_set_pi, exp_set_pi]
 
 /-- Sampling everything and then picking is equivalent to picking and then sampling the right one -/
 @[simp] lemma pi_bind [Fintype α] {β : α → Type} (f : (x : α) → Prob (β x))
     (x : α) (g : β x → Prob γ) : (Prob.pi f >>= fun y ↦ g (y x)) = f x >>= g := by
   ext z
   simp only [prob_bind]
-  apply pi_exp (g := fun y ↦ (g y).prob z)
+  apply exp_pi (g := fun y ↦ (g y).prob z)
+
+lemma pi_snoc {n : ℕ} {s : Fin n → Prob Bool} {t : Prob Bool} :
+    (Prob.pi s >>= fun x ↦ t >>= fun y ↦ pure (Fin.snoc x y)) =
+      Prob.pi (Fin.snoc (α := fun _ ↦ Prob Bool) s t) := by
+  ext f
+  simp only [prob_pi, Fin.prod_univ_castSucc, prob_bind, prob_pure, eq_comm (a := f),
+    Fin.snoc_eq_iff, ite_and_one_zero, exp_const_mul, exp_mul_const]
+  apply congr_arg₂
+  · refine Eq.trans (exp_eq_prob _ _) ?_
+    simp only [prob_pi, Fin.snoc_castSucc]
+    rfl
+  · exact Eq.trans (exp_eq_prob _ _) (by simp only [Fin.snoc_last])
 
 /-!
 ### Dependent bind for `Prob`

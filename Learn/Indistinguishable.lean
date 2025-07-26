@@ -268,7 +268,7 @@ variable {As : Set (Distinguisher X Y)}
 /-- Turn a distinguisher into a circuit primitive -/
 def Distinguisher.prim (A : Distinguisher X Y) (y : Y) : Prim X where
   n := Fintype.card Y
-  f := fun x p ↦ A x y (Prob.force (p ∘ Fintype.equivFin Y))
+  f := fun x p ↦ A x y (Prob.force (p ∘ Fintype.equivFin Y) .univ)
 
 /-- Our circuit primitives are the union of distinguishers and arithmetic -/
 @[prim_mem] def prims (As : Set (Distinguisher X Y)) : Set (Prim X) :=
@@ -284,7 +284,7 @@ def Mimic (As : Set (Distinguisher X Y)) : Type :=
 
 /-- Evaluate a mimic into a probability distribution -/
 def Mimic.eval (p : Mimic As) (x : X) : Prob Y :=
-  Prob.force fun y ↦ (p y).eval x
+  Prob.force (fun y ↦ (p y).eval x) .univ
 
 /-- Mimics that have normalised probabilities (and are positive) -/
 structure Mimic.Valid (p : Mimic As) : Prop where
@@ -298,6 +298,7 @@ attribute [bound] Mimic.Valid.pos
 @[simp] lemma Mimic.Valid.prob_eval {p : Mimic As} (v : Mimic.Valid p) (x : X) (y : Y) :
     (p.eval x).prob y = (p y).eval x := by
   rw [Mimic.eval, Prob.prob_force]
+  simp only [Finset.mem_univ, ↓reduceIte]
   exact ⟨by bound, v.total x⟩
 
 /-- `Valid` implies `Safe` -/
@@ -370,7 +371,8 @@ def Mimic.Valid.step {p : Mimic As} (v : p.Valid) {μ : Prob X} {q : X → Prob 
     (Mimic.uniform As).eval = fun _ ↦ Prob.uniform_univ Y := by
   ext x y
   simp only [Mimic.eval, Mimic.uniform, one_div, Circuit.eval_const, Prob.prob_uniform_univ]
-  rw [Prob.prob_force _ (by bound)]
+  rw [Prob.prob_force _ _ (by bound)]
+  simp only [Finset.mem_univ, ↓reduceIte]
 
 /-- Reweight commutes with eval -/
 @[simp] lemma eval_reweight (p : Mimic As) (v : p.Valid) (μ : Prob X) (q : X → Prob Y)
