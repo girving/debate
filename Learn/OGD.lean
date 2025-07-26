@@ -148,7 +148,7 @@ theorem regret_le (sd : EMetric.diam s ≤ .ofReal d) (p : Proj proj s) (eve : A
     induction' n with n h
     · simp
     · rw [Finset.sum_range_succ, Finset.sum_range_succ']
-      simp [δ, if_true, η]
+      simp [δ, η]
       bound
   refine le_trans (add_le_add_right (sub_le_sub_left le2 _) _) ?_
   -- Split into telescoping sum and error term

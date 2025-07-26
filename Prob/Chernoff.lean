@@ -32,8 +32,7 @@ lemma iteratedDerivWithin_eq_iteratedDeriv {f : ℝ → ℝ} (fc : ContDiff ℝ 
     {a b t : ℝ} (ab : a < b) (m : t ∈ Icc a b) {n : ℕ} :
     iteratedDerivWithin n f (Icc a b) t = iteratedDeriv n f t := by
   induction' n with n h generalizing m t
-  · simp only [Nat.zero_eq, ge_iff_le, not_le, gt_iff_lt, iteratedDerivWithin_zero,
-      iteratedDeriv_zero]
+  · simp only [iteratedDerivWithin_zero, iteratedDeriv_zero]
   · have u : UniqueDiffWithinAt ℝ (Icc a b) t := uniqueDiffWithinAt_Icc ab m
     rw [iteratedDerivWithin_succ, iteratedDeriv_succ, ←derivWithin_univ,
       ←derivWithin_subset (subset_univ _) u]
@@ -73,20 +72,18 @@ lemma L_taylor (m : p ∈ Icc 0 1) (t0 : 0 < t) :
     ((Lc m).contDiffOn.differentiableOn_iteratedDerivWithin (WithTop.coe_lt_top 1)
       (uniqueDiffOn_Icc t0)).mono Ioo_subset_Icc_self
   rcases @taylor_mean_remainder_lagrange (L p) t 0 1 t0 Lc1 d2 with ⟨a,am,h⟩
-  simp only [ge_iff_le, not_le, gt_iff_lt, taylorWithinEval_succ, taylor_within_zero_eval,
-    Real.exp_zero, mul_one, sub_add_cancel, Real.log_one, CharP.cast_eq_zero, zero_add,
-    Nat.factorial, Nat.cast_one, inv_one, sub_zero, pow_one, one_mul, smul_eq_mul, Nat.mul_one,
-    Nat.cast_succ, iteratedDeriv_one, iteratedDeriv_zero, iteratedDeriv_succ, div_one,
+  simp only [taylorWithinEval_succ, taylor_within_zero_eval, Real.exp_zero, mul_one, sub_add_cancel,
+    CharP.cast_eq_zero, zero_add, Nat.factorial, inv_one, sub_zero, pow_one, one_mul, smul_eq_mul,
+    Nat.mul_one, Nat.cast_succ, iteratedDeriv_zero, iteratedDeriv_succ, div_one,
     iteratedDerivWithin_eq_iteratedDeriv (Lc m) t0 (left_mem_Icc.mpr (le_of_lt t0)),
-    iteratedDerivWithin_eq_iteratedDeriv (Lc m) t0 (Ioo_subset_Icc_self am),
-    (dL m).deriv, (ddL m).deriv,
-    sub_eq_iff_eq_add, L_0] at h
-  simp only [L_0, one_add_one_eq_two, L] at h
+    iteratedDerivWithin_eq_iteratedDeriv (Lc m) t0 (Ioo_subset_Icc_self am), (dL m).deriv,
+    (ddL m).deriv, sub_eq_iff_eq_add, L_0] at h
+  simp only [one_add_one_eq_two, L] at h
   use a, am, h
 
 /-- Special case of AMGM, expressed as a bound on the ratio -/
 lemma mul_div_sq_sum_le {x y : ℝ} (x0 : 0 ≤ x) (y0 : 0 ≤ y) : x * y / (x + y)^2 ≤ 1/4 := by
-  by_cases s0 : x + y = 0; simp only [s0, zero_pow]; norm_num
+  by_cases s0 : x + y = 0; simp only [s0]; norm_num
   replace s0 : 0 < x + y := (Ne.symm s0).lt_of_le (add_nonneg x0 y0)
   rw [div_le_iff₀ (pow_pos s0 2), one_div, mul_comm 4⁻¹, ←div_eq_mul_inv]
   have h : (0:ℝ) ≤ (x - y)^2 := sq_nonneg _
@@ -123,15 +120,13 @@ lemma hoeffdings_lemma' (f : Prob Bool) {t : ℝ} (t0 : 0 ≤ t) :
 lemma exp_count (f : Prob Bool) (n : ℕ) (t : ℝ) :
     (count f n).exp (fun x ↦ (t*x).exp) = (f.exp (fun x ↦ (t * bif x then 1 else 0).exp)) ^ n := by
   induction' n with k h
-  · simp only [Nat.zero_eq, CharP.cast_eq_zero, zero_mul, Real.exp_zero, count, exp_pure, pow_zero,
-      mul_zero]
+  · simp only [CharP.cast_eq_zero, Real.exp_zero, count, exp_pure, pow_zero, mul_zero]
   · generalize hz : f.exp (fun x ↦ (t * bif x then 1 else 0).exp) = z
     simp only [hz] at h
     have i : ∀ x, ↑(bif x then (1 : ℕ) else (0 : ℕ)) = (bif x then (1 : ℝ) else (0 : ℝ)) := by
       intro x; induction x; repeat simp only [cond_false, cond_true, Nat.cast_one, Nat.cast_zero]
-    simp only [count, Nat.cast_succ, add_mul, one_mul, Real.exp_add, exp_bind, exp_pure,
-      Nat.cast_add, exp_const_mul, exp_mul_const, h, hz, mul_comm _ z.exp, i, pow_succ, mul_ite,
-      mul_add, mul_one, mul_zero]
+    simp only [count, Real.exp_add, exp_bind, exp_pure, Nat.cast_add, exp_const_mul, exp_mul_const,
+      h, hz, i, pow_succ, mul_add]
     ring
 
 /-- Weak Chernoff's theorem for the Bernoulli case -/
@@ -139,7 +134,7 @@ lemma chernoff_count_le (f : Prob Bool) (n : ℕ) {t : ℝ} (t0 : 0 ≤ t) :
     (count f n).pr (fun x ↦ n * f.prob true + t ≤ x) ≤ (-2 * t^2 / n).exp := by
   generalize hp : f.prob true = p
   by_cases tz : t = 0
-  · simp only [tz, pow_two, mul_zero, zero_div, Real.exp_zero, zero_pow]; apply pr_le_one
+  · simp only [tz, pow_two, mul_zero, zero_div, Real.exp_zero]; apply pr_le_one
   replace t0 := (Ne.symm tz).lt_of_le t0; clear tz
   by_cases nz : n = 0
   · simp only [nz, count, Nat.cast_zero, zero_mul, zero_add, pr, exp_pure, div_zero, Real.exp_zero]
@@ -160,8 +155,7 @@ lemma chernoff_count_le (f : Prob Bool) (n : ℕ) {t : ℝ} (t0 : 0 ≤ t) :
     simp only [add_comm _ (s*t), ←add_assoc]; simp only [neg_mul, add_neg_cancel, zero_add]
     simp only [add_comm (_ / _)]; apply add_le_add_right; rfl
   apply le_trans (h (4*t/n) (by positivity)); simp only [Real.exp_le_exp]; apply le_of_eq
-  simp only [Nat.cast_ofNat, Nat.cast_pow, neg_mul, div_pow, mul_pow, ←mul_assoc, mul_div, pow_two,
-    div_eq_mul_inv, mul_inv, Nat.cast_mul, mul_pow, pow_two]
+  simp only [neg_mul, ← mul_assoc, pow_two, div_eq_mul_inv, pow_two]
   ring_nf
   rw [pow_two (n:ℝ)⁻¹, ←mul_assoc, mul_assoc _ (n:ℝ), mul_inv_cancel₀ (Nat.cast_ne_zero.mpr nz),
     mul_one]

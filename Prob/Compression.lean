@@ -36,8 +36,8 @@ theorem Prob.compression (p : Prob α) (enc : α → β → γ) (dec : α → γ
     rw [(by aesop : s = Finset.image (dec r) t)]
     exact Finset.card_image_le
   have e : Finset.univ.filter (fun x ↦ dec r (enc r x) = x) = s := by aesop
-  simp only [exp, Finsupp.sum, support_uniform_univ, prob_uniform_univ, smul_eq_mul, mul_one,
-    mul_zero, ← Finset.mul_sum]
+  simp only [exp, Finsupp.sum, support_uniform_univ, prob_uniform_univ, smul_eq_mul, ←
+    Finset.mul_sum]
   rw [Finset.sum_ite, e]
   simp [div_eq_inv_mul]
   bound

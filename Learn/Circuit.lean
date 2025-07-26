@@ -157,19 +157,19 @@ variable {x y : Circuit F}
   exact congrFun rfl
 
 @[simp, circuit_eval] lemma eval_add : (x + y).eval a = x.eval a + y.eval a := by
-  simp [Add.add, Prim.sum, eval, Function.comp_apply]
+  simp [Prim.sum, eval]
 
 @[simp, circuit_eval] lemma eval_mul : (x * y).eval a = x.eval a * y.eval a := by
-  simp [Mul.mul, Prim.prod, eval, Function.comp_apply]
+  simp [Prim.prod, eval]
 
 @[simp, circuit_eval] lemma eval_div : (x / y).eval a = x.eval a / y.eval a := by
-  simp [Div.div, Prim.div, eval, Function.comp_apply]
+  simp [Prim.div, eval]
 
 @[simp, circuit_eval] lemma eval_neg : (-x).eval a = -x.eval a := by
-  simp [Neg.neg, Prim.neg, eval, Function.comp_apply]
+  simp [Neg.neg, Prim.neg, eval]
 
 @[simp, circuit_eval] lemma eval_exp : (exp x).eval a = Real.exp (x.eval a) := by
-  simp [exp, Prim.exp, eval, Function.comp_apply]
+  simp [exp, Prim.exp, eval]
 
 end Eval
 
@@ -203,12 +203,12 @@ attribute [circuit_subs] total Finset.sup_union_distrib Finset.univ_sup_const_un
 
 @[circuit_subs] lemma subs_sum :
     (sum a).subs = {sum a} ∪ Finset.univ.sup fun x ↦ (a x).subs := by
-  simp [subs, Finset.univ_fin2, Prim.sum, Circuit.sum]
+  simp [subs, Prim.sum, Circuit.sum]
   exact congr_arg₂ _ rfl (Finset.univ_sup_comp_equivFin_symm fun k ↦ (a k).subs)
 
 @[circuit_subs] lemma subs_prod :
     (prod a).subs = {prod a} ∪ Finset.univ.sup fun x ↦ (a x).subs := by
-  simp [subs, Finset.univ_fin2, Prim.prod, Circuit.prod]
+  simp [subs, Prim.prod, Circuit.prod]
   exact congr_arg₂ _ rfl (Finset.univ_sup_comp_equivFin_symm fun k ↦ (a k).subs)
 
 @[circuit_subs] lemma subs_add : (x + y).subs = {x + y} ∪ x.subs ∪ y.subs := by

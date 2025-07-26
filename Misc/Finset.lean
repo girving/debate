@@ -21,11 +21,11 @@ lemma Finset.sum_eq_sum_zero_off_inter {s0 s1 : Finset α} {g : α → ℝ}
   have e0 : s0.sum g = (s0 ∪ s1).sum g := by
     apply Finset.sum_subset_zero_on_sdiff Finset.subset_union_left
     · intro x m; apply h; left; rw [Finset.mem_sdiff] at m; exact m.2
-    · simp only [Prod.mk.eta, implies_true, Prod.forall, forall_const]
+    · simp only [implies_true]
   have e1 : s1.sum g = (s0 ∪ s1).sum g := by
     apply Finset.sum_subset_zero_on_sdiff Finset.subset_union_right
     · intro x m; apply h; right; rw [Finset.mem_sdiff] at m; exact m.2
-    · simp only [Prod.mk.eta, implies_true, Prod.forall, forall_const]
+    · simp only [implies_true]
   rw [e0, e1]
 
 /-- Bound one `Finset.sum` by another on a different space, but injecting between the spaces -/
@@ -47,9 +47,11 @@ lemma Finset.sum_le_sum_of_map {s : Finset α} {t : Finset β} {u : α → ℝ} 
   refine le_trans ?_ (le_add_of_nonneg_right ?_)
   · rw [Finset.sum_image]
     · apply Finset.sum_le_sum; intro x m; simp only [mem_filter, s'] at m; exact le _ m.2
-    · intro x m y n; simp only [mem_filter, s'] at m n; apply inj _ _ m.2 n.2
+    · intro x m y n
+      simp only [ne_eq, coe_filter, Set.mem_setOf_eq, s'] at m n
+      apply inj _ _ m.2 n.2
   · apply Finset.sum_nonneg; intro y m
-    simp only [mem_sdiff, not_exists, not_and] at m; exact v0 _ m.1
+    simp only [mem_sdiff] at m; exact v0 _ m.1
 
 /-- `ENNReal.ofReal` commutes with `Finset.sum` for nonnegative maps -/
 lemma Finset.sum_ofReal {s : Finset α} {f : α → ℝ} (f0 : ∀ x, 0 ≤ f x) :

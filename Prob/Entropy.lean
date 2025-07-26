@@ -58,8 +58,7 @@ def Ic (p : Prob (α × β × γ)) : ℝ := p.exp fun x ↦ p.Ic_inner x
 
 /-- Maps reduce entropy -/
 lemma H_map_le (f : α → β) (p : Prob α) : (f <$> p).H ≤ p.H := by
-  simp only [H, map_eq, prob_bind, prob_pure, bind_assoc, pure_bind, exp_bind,
-    exp_pure, id_eq]
+  simp only [H, map_eq, prob_bind, prob_pure, exp_bind, exp_pure]
   refine exp_mono fun x px ↦ ?_
   apply neg_le_neg
   apply Real.logb_le_logb_of_le
@@ -75,7 +74,7 @@ lemma H_map_le (f : α → β) (p : Prob α) : (f <$> p).H ≤ p.H := by
 
 /-- Injective maps preserve entropy -/
 lemma H_map_eq (f : α → β) (p : Prob α) (fi : f.Injective) : (f <$> p).H = p.H := by
-  simp only [H, map_eq, prob_bind, prob_pure, bind_assoc, pure_bind, exp_bind, exp_pure, id_eq]
+  simp only [H, map_eq, prob_bind, prob_pure, exp_bind, exp_pure]
   apply congr_arg₂ _ rfl
   funext x
   apply congr_arg
@@ -91,8 +90,8 @@ lemma H_map_eq (f : α → β) (p : Prob α) (fi : f.Injective) : (f <$> p).H = 
 /-- The information of a pair is `fst.H + exp snd.H` -/
 lemma H_pair (p : Prob α) (q : α → Prob β) :
     (do let x ← p; let y ← q x; return (x, y)).H = p.H + p.exp fun x ↦ (q x).H := by
-  simp only [H, exp_map, CompTriple.comp_eq, exp_bind, exp_pure, ← exp_add, exp_neg, ← neg_add,
-    neg_inj, prob_bind, prob_pure, Prod.mk.injEq, ite_and_one_zero, exp_const_mul, exp_eq_prob']
+  simp only [H, exp_bind, exp_pure, ← exp_add, exp_neg, ← neg_add, neg_inj, prob_bind, prob_pure,
+    Prod.mk.injEq, ite_and_one_zero, exp_const_mul, exp_eq_prob']
   simp only [ite_zero_mul, one_mul]
   refine exp_congr fun x px ↦ ?_
   simp only [← exp_const_add]
@@ -112,7 +111,7 @@ lemma exp_H_eq_H (p : Prob α) (q : α → Prob β) :
   simp only [H, prob_bind, prob_pure, ite_eq_delta, exp_bind, exp_pure, delta_pair, exp_mul_delta']
   trans p.exp fun x ↦ q.exp fun y ↦ -(logb 2 (p.prob x) + logb 2 (q.prob y))
   · refine exp_congr fun x px ↦ exp_congr fun y py ↦ ?_
-    simp only [← neg_add, neg_inj, Real.logb_mul px py, smul_eq_mul]
+    simp only [Real.logb_mul px py]
   · simp only [neg_add_rev, exp_add, exp_neg, exp_const]; ring
 
 /-- The entropy of independent variables adds -/
@@ -161,8 +160,8 @@ lemma Ic_nonneg (p : Prob (α × β × γ)) : 0 ≤ p.Ic := by
           simp only [prob_map, hzp] at pz
           have pz' : 0 < zp := by simp only [← hzp] at pz ⊢; exact pr_nonneg.lt_of_ne pz.symm
           simp only [mul_comm _ zp⁻¹, ← mul_assoc, smul_eq_mul]
-          simp only [mul_assoc, mul_ite, mul_zero, Finset.sum_product,
-            Finset.sum_ite_eq', zm, ↓reduceIte, ← Finset.mul_sum, inv_mul_le_iff₀ pz', smul_eq_mul]
+          simp only [mul_assoc, mul_ite, mul_zero, Finset.sum_product, Finset.sum_ite_eq', zm,
+            ↓reduceIte, ← Finset.mul_sum, inv_mul_le_iff₀ pz']
           trans ∑ x ∈ sx, ∑ y ∈ sy, ((p.pr fun a ↦ a.2.1 = y ∧ a.2.2 = z) *
             p.pr fun a ↦ a.1 = x ∧ a.2.2 = z)
           · refine Finset.sum_le_sum fun x _ ↦ Finset.sum_le_sum fun y _ ↦ ?_
@@ -217,8 +216,8 @@ lemma I_nonneg (p : Prob (α × β)) : 0 ≤ p.I := by
 
 /-- Alternate expression of `I` in terms of `H` -/
 lemma I_eq_H (p : Prob (α × β)) : p.I = (fst <$> p).H + (snd <$> p).H - p.H := by
-  simp only [I, H, exp_map, CompTriple.comp_eq, exp_neg, Function.comp, add_assoc,
-    ← exp_add, ← exp_sub, I_inner, sub_neg_eq_add, ← sub_eq_neg_add, ← neg_add, neg_sub_left]
+  simp only [I, H, exp_map, exp_neg, Function.comp, ← exp_add, ← exp_sub, I_inner, sub_neg_eq_add, ←
+    sub_eq_neg_add, neg_sub_left]
   refine exp_congr fun x px ↦ ?_
   have z1 : (p.pr fun y ↦ y.1 = x.1) ≠ 0 := by rw [pr_ne_zero]; use x
   have z2 : (p.pr fun y ↦ y.2 = x.2) ≠ 0 := by rw [pr_ne_zero]; use x
@@ -231,7 +230,7 @@ See https://en.wikipedia.org/wiki/Conditional_mutual_information#Some_identities
 lemma Ic_eq_I_sub_H (p : Prob (α × β × γ)) :
     p.Ic = ((fun ⟨x,y,z⟩ ↦ ((x,z),(y,z))) <$> p).I - ((fun ⟨_,_,z⟩ ↦ z) <$> p).H := by
   simp only [Ic, Ic_inner, I, Prod.mk.eta, I_inner, exp_map, H, ← exp_sub, Function.comp_apply,
-    sub_neg_eq_add, prob_map, pr_map, ← Prod.ext_iff, Prod.mk.injEq]
+    sub_neg_eq_add, prob_map, pr_map, Prod.mk.injEq]
   refine exp_congr fun x px ↦ ?_
   have e0 : (p.pr fun y ↦ (y.1 = x.1 ∧ y.2.2 = x.2.2) ∧ y.2 = x.2) = p.prob x := by
     simp only [← pr_eq_prob]
@@ -247,7 +246,7 @@ lemma Ic_eq_I_sub_H (p : Prob (α × β × γ)) :
 lemma Ic_eq_H (p : Prob (α × β × γ)) :
     p.Ic = ((fun ⟨x,_,z⟩ ↦ (x,z)) <$> p).H + ((fun ⟨_,y,z⟩ ↦ (y,z)) <$> p).H -
       ((fun ⟨x,y,z⟩ ↦ ((x,z),(y,z))) <$> p).H - ((fun ⟨_,_,z⟩ ↦ z) <$> p).H := by
-  simp only [Ic_eq_I_sub_H, I_eq_H, Functor.map_map, Function.comp]
+  simp only [Ic_eq_I_sub_H, I_eq_H, Functor.map_map]
 
 /-- Expected information is conditional information -/
 lemma exp_I_eq_Ic (p : Prob α) (q : α → Prob (β × γ)) :
@@ -274,7 +273,7 @@ lemma exp_I_eq_Ic (p : Prob α) (q : α → Prob (β × γ)) :
 
 /-- `I(X,Y) = I(Y,X)` -/
 lemma I_swap (p : Prob (α × β)) : (Prod.swap <$> p).I = p.I := by
-  simp only [I_eq_H, Functor.map_map, Function.comp, Prod.swap_prod_mk]
+  simp only [I_eq_H, Functor.map_map]
   refine congr_arg₂ _ ?_ ?_
   · nth_rw 1 [add_comm]; rfl
   · rw [H_map_eq]; exact Prod.swap_injective
@@ -282,24 +281,24 @@ lemma I_swap (p : Prob (α × β)) : (Prod.swap <$> p).I = p.I := by
 /-- Information is preserved under injective maps -/
 lemma I_map_eq_I (p : Prob (α × β)) (f : β → γ) (fi : f.Injective) :
     ((fun s ↦ (s.1, f s.2)) <$> p).I = p.I := by
-  simp only [I_eq_H, Functor.map_map, Function.comp]
+  simp only [I_eq_H, Functor.map_map]
   refine congr_arg₂ _ (congr_arg₂ _ rfl ?_) ?_
   · trans (f <$> (snd <$> p)).H
-    · simp only [Functor.map_map, Function.comp]
+    · simp only [Functor.map_map]
     · rw [H_map_eq _ _ fi]
   · rw [H_map_eq]
     intro ⟨_,_⟩ ⟨_,_⟩ e
     simp only [Prod.mk.injEq] at e
-    simp only [e, Prod.mk.injEq, true_and, fi e.2]
+    simp only [e, fi e.2]
 
 /-- Information is preserved under injective maps -/
 lemma map_I_eq_I (p : Prob (α × β)) (f : α → γ) (fi : f.Injective) :
     ((fun s ↦ (f s.1, s.2)) <$> p).I = p.I := by
   nth_rw 1 [← I_swap]
   nth_rw 2 [← I_swap]
-  simp only [Functor.map_map, Function.comp, Prod.swap_prod_mk]
+  simp only [Functor.map_map, Prod.swap_prod_mk]
   have e : (fun s ↦ (s.2, f s.1)) <$> p = (fun s ↦ (s.1, f s.2)) <$> Prod.swap <$> p := by
-    simp only [Functor.map_map, Function.comp, Prod.swap]
+    simp only [Functor.map_map, Prod.swap]
   rw [e, I_map_eq_I _ _ fi]
 
 /-- Mutual self information is entropy -/
@@ -337,7 +336,7 @@ lemma map_I_eq_I (p : Prob (α × β)) (f : α → γ) (fi : f.Injective) :
 /-- The chain rule for mutual information: `I(X,(Y,Z)) = I(X,Z) + I(X,Y|Z)` -/
 lemma I_eq_I_add_Ic (p : Prob (α × β × γ)) :
     p.I = ((fun ⟨x,_,z⟩ ↦ (x,z)) <$> p).I + p.Ic := by
-  simp only [I_eq_H, Functor.map_map, Function.comp, Ic_eq_H, Prod.mk.eta]
+  simp only [I_eq_H, Functor.map_map, Ic_eq_H, Prod.mk.eta]
   ring_nf
   simp only [add_right_inj, sub_right_inj]
   rw [H_map_eq]
@@ -417,7 +416,7 @@ lemma bind_I_le_I (p : Prob (α × β)) (q : α → Prob γ) :
     (do let (x,y) ← p; let z ← q x; return (z,y)).I ≤ p.I := by
   set q := Prod.swap <$> p
   have pq : p = Prod.swap <$> q := by
-    simp only [Functor.map_map, Function.comp, Prod.swap_swap, q, id_map']
+    simp only [Functor.map_map, Prod.swap_swap, q, id_map']
   simp only [pq, I_swap q]
   nth_rw 1 [← I_swap]
   simp only [map_eq, bind_assoc, pure_bind, Prod.fst_swap, Prod.snd_swap, Prod.swap_prod_mk]
@@ -470,7 +469,7 @@ lemma I_bind_le₂ (o : Prob α) (p : α → Prob β) (q : α → β → Prob (�
       (o >>= p).H + o.exp fun x ↦ (p x).exp fun y ↦ (do let x ← o.when p y; q x y).I := by
   simp only [← bind_when o p]
   refine le_trans (I_bind_le _ _) ?_
-  simp only [exp_bind, add_le_add_iff_left, le_refl]
+  simp only [exp_bind, le_refl]
 
 /-!
 ### Independent branching adds no information

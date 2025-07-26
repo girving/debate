@@ -88,8 +88,8 @@ lemma bob_sound (o : BOracle ι) (i : OracleId) (cs : c < s) (q0 : 0 < q) {y : �
     (bad : |p - (o y).prob true| ≥ s) :
     1 - q ≤ ((bob' c s q i y p).prob' o).prob false := by
   rw [bool_prob_false_of_true, sub_le_sub_iff_left]
-  simp only [bob', prob_bind, prob_pure, true_eq_decide_iff, not_lt, Comp.prob',
-    Comp.prob_bind, Comp.prob_pure]
+  simp only [bob', prob_bind, prob_pure, true_eq_decide_iff, Comp.prob', Comp.prob_bind,
+    Comp.prob_pure]
   rw [← pr]
   refine le_trans (pr_mono ?_) (alice_pr_le o i (by linarith) q0 y)
   intro b _ h
@@ -160,7 +160,7 @@ lemma debate_eq_transposed (o : BOracle ι) (alice : Alice ι) (bob : Bob ι) (v
     intro α f
     induction f with
     | pure' x =>
-      simp only [steps, alices, pure_bind, bobs, shim, map_eq, Comp.prob', Comp.prob_pure']
+      simp only [steps, alices, pure_bind, bobs, shim, map_eq, Comp.prob_pure']
     | sample' p g h =>
       simp only [steps, Comp.prob_sample', h, alices, bind_assoc]
     | query' _ _ y f h =>
@@ -177,23 +177,23 @@ lemma debate_eq_transposed (o : BOracle ι) (alice : Alice ι) (bob : Bob ι) (v
       | false => simp only [Bool.false_eq_true, ↓reduceIte, map_pure, shim, bind_pure_comp]
   simp only [debate, transposed, trace, extract, h, bind_assoc, map_eq, Comp.prob', Comp.prob_bind]
   apply congr_arg₂ _ rfl; funext ⟨p,y⟩; apply congr_arg₂ _ rfl; funext r; match r with
-  | some true => simp only [shim, pure_bind, Option.getD, Comp.prob_pure]
-  | some false => simp only [shim, pure_bind, Option.getD, Comp.prob_pure]
-  | none => simp only [shim, pure_bind, Option.getD, Comp.prob_pure]
+  | some true => simp only [shim, pure_bind, Comp.prob_pure]
+  | some false => simp only [shim, pure_bind, Comp.prob_pure]
+  | none => simp only [shim, pure_bind, Comp.prob_pure]
 
 /-- Traces are at most `f.worst` long -/
 lemma trace_length_le (alice : Alice ι) (f : BComp ι u Bool) {t : List (ι × ℝ) × Bool}
     (p : (alices o alice f).prob t ≠ 0) : t.1.length ≤ f.worst := by
   induction' f with x n p g h i m y f h generalizing t
-  · simp only [alices, prob_pure, Prod.mk.injEq, ne_eq, ite_eq_right_iff, one_ne_zero, imp_false,
-      not_and, Classical.not_imp, Decidable.not_not] at p
+  · simp only [alices, prob_pure, ne_eq, ite_eq_right_iff, one_ne_zero, imp_false,
+    Decidable.not_not] at p
     simp only [p, List.length_nil, Comp.worst_pure', le_refl]
   · simp only [alices, prob_bind_ne_zero] at p
     obtain ⟨x,_,z⟩ := p
     exact le_trans (h _ z) (by bound)
   · simp only [alices, Comp.prob', prob_bind_ne_zero, prob_pure] at p
     obtain ⟨p,p0,b,b0,r,r0,e⟩ := p
-    simp only [Prod.mk.injEq, ne_eq, ite_eq_right_iff, imp_false, Classical.not_imp, not_not] at e
+    simp only [ne_eq, ite_eq_right_iff, Classical.not_imp] at e
     simp only [e, List.length_cons, Comp.worst_query', add_comm 1, add_le_add_iff_right]
     exact le_trans (h _ r0) (by bound)
 
@@ -267,7 +267,7 @@ lemma snaps_prob (alice : Alice ι) {z : α} (c : t.Forall (o.close e))
         rw [e.1]
         simp only [e, c.1, ↓reduceIte, Prod.mk.injEq, List.cons.injEq, true_and]
         simp [← Prod.mk.injEq, pr_eq_prob, h _ c.2]
-      · simp only [e, Prod.mk.injEq, List.cons.injEq, and_true, false_and, pr_false, exp_const]
+      · simp only [e, Prod.mk.injEq, List.cons.injEq, false_and, pr_false, exp_const]
 
 /-- Final result of snaps -/
 def final (x : List (ι × ℝ) × α) : α := x.2
@@ -339,8 +339,8 @@ lemma alices_success (f : BComp ι u Bool) (L : f.lipschitz o k)
     · apply exp_mono'
       intro (t,z)
       by_cases c : t.Forall (o.close e)
-      · simp only [c, true_and, if_false, add_zero, snaps_prob _ c, and_true, le_refl]
-      · simp only [c, false_and, if_false, zero_add, if_true, mul_one, and_false, mul_zero, le_refl]
+      · simp only [c, true_and, snaps_prob _ c, and_true, le_refl]
+      · simp only [c, false_and, if_false, and_false, mul_zero, le_refl]
     · trans (snaps o (alice e q) e f).pr (fun (t,_) => ¬t.Forall (o.close e))
       · apply pr_mono; intro _ _
         simp only [and_imp, imp_self, implies_true]
@@ -348,7 +348,7 @@ lemma alices_success (f : BComp ι u Bool) (L : f.lipschitz o k)
             (alices o (alice e q) f).pr (fun (t,_) => t.Forall (o.close e)) := by
           apply exp_congr'; intro (t,_)
           by_cases c : t.Forall (o.close e)
-          · simp only [c, if_true, mul_one, snaps_prob _ c]
+          · simp only [c, if_true, snaps_prob _ c]
           · simp only [c, if_false, smul_zero]
         simp only [pr_neg, ae]
         linarith [alices_close (o := o) e0 q0 q1 f]
@@ -380,7 +380,7 @@ lemma evil_bobs_lies (eve : Bob ι) (cs : c < s) (v0 : 0 < v) (tc : t.Forall (o.
       (fun r ↦ ¬r.isSome) = 0 := by
     apply cond_eq_zero; intro r _ ri
     simp only [Option.not_isSome_iff_eq_none] at ri
-    simp [ri, extract, tc]
+    simp [ri, extract]
   simp only [b1, zero_mul, add_zero]
   refine le_trans (mul_le_of_le_one_right cond_nonneg pr_le_one) ?_
   refine le_trans (le_of_eq ?_) (evil_bobs_lies' eve cs v0 tc)
@@ -666,6 +666,6 @@ def defaults (k : ℝ) (t : ℕ) (k0 : 0 < k) : Params (2/3) (3/5) k t where
     rw [mul_comm_div]
     bound [t_div_le_one t]
   sound := by
-    simp only [←mul_div_assoc, mul_one, mul_comm _ k, ←div_div, div_self (ne_of_gt k0)]
+    simp only [← mul_div_assoc, mul_comm _ k, ← div_div]
     rw [mul_comm k 5, mul_div_assoc, div_self (ne_of_gt k0), mul_comm_div]
     bound [t_div_le_one t]

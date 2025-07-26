@@ -48,7 +48,7 @@ lemma prob_argmax_ne_zero (p : Prob α) : p.prob p.argmax ≠ 0 := by
   have t := p.total
   contrapose t
   have z : p.prob.sum (fun _ p ↦ p) = 0 := by
-    simp only [ne_eq, not_exists, not_not] at t
+    simp only [ne_eq, not_not] at t
     apply Finset.sum_eq_zero fun x _ ↦ ?_
     simp only
     refine le_antisymm ?_ (prob_nonneg _)

@@ -52,7 +52,7 @@ lemma when_finsupp_total (y : β) : ((p.when_finsupp q y).sum fun _ p ↦ p) = 1
   · simp only [py, ↓reduceIte, ne_eq, Finset.sum_filter, ite_not]
     trans ∑ x ∈ p.prob.support, ((p >>= q).prob y)⁻¹ * p.prob x * (q x).prob y
     · apply Finset.sum_congr rfl; intro x hx
-      simp only [Finsupp.mem_support_iff, Finset.mem_filter] at hx
+      simp only [Finsupp.mem_support_iff] at hx
       simp only [ite_eq_right_iff, zero_eq_mul, mul_eq_zero, inv_eq_zero, py, hx, or_self,
         false_or, imp_self]
     · simp only [← Finset.mul_sum, mul_assoc, inv_mul_eq_one₀ py]
@@ -101,7 +101,7 @@ lemma bind_when (r : α → β → Prob γ) :
 /-- Binding `p >>= q` with `p.when q` recovers `p` -/
 lemma bind_bind_when : p >>= q >>= p.when q = p := by
   trans fst <$> (do let y ← p >>= q; let x ← p.when q y; return (x,y))
-  · simp only [bind_when_pure, map_eq, bind_assoc, pure_bind, bind_pure]
+  · simp only [map_eq, bind_assoc, pure_bind, bind_pure]
   · trans fst <$> (do let x ← p; let y ← q x; return (x,y))
     · simp only [bind_when_pure]
     · simp only [map_eq, bind_assoc, pure_bind, bind_const, bind_pure]

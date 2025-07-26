@@ -42,7 +42,7 @@ def PMF.toProb (f : PMF α) (finite : f.support.Finite) : Prob α where
     set e' : ENNReal := .ofReal e
     have e0' : e' ≠ 0 := (ENNReal.ofReal_pos.mpr ep).ne'
     have m : 1 ∈ Ioo (1-e' : ENNReal) (1+e') := by
-      simp only [ge_iff_le, gt_iff_lt, not_lt, mem_Ioo]; constructor
+      simp only [mem_Ioo]; constructor
       · apply ENNReal.sub_lt_self; norm_num; norm_num; exact e0'
       · apply ENNReal.lt_add_right; norm_num; exact e0'
     rcases tendsto_atTop_nhds.mp f.property (Ioo (1-e') (1+e')) m isOpen_Ioo with ⟨t,total⟩
@@ -50,7 +50,7 @@ def PMF.toProb (f : PMF α) (finite : f.support.Finite) : Prob α where
       rw [←Finset.sum_subset Finset.subset_union_left] at total
       · simp only [Finsupp.sum, Finsupp.ofSupportFinite_coe]
         rw [@Finset.sum_subset _ _ _ s]
-        · simp only [ge_iff_le, gt_iff_lt, not_lt, mem_Ioo] at total
+        · simp only [mem_Ioo] at total
           simp only [Finset.sum_toReal (λ _ ↦ PMF.apply_ne_top _ _), Real.dist_eq, abs_le,
             le_sub_iff_add_le, sub_le_iff_le_add, add_comm _ (1:ℝ)]
           constructor
@@ -93,7 +93,7 @@ theorem Prob.toProb_toPmf (f : Prob α) : f.toPmf.toProb f.toPmf_support_finite 
 /-- `PMF → Prob → PMF` is the identity on finitely-supported `PMF`s. -/
 theorem PMF.toPmf_toProb (f : PMF α) (hf : f.support.Finite) : (f.toProb hf).toPmf = f := by
   ext
-  simp [ne_eq, ENNReal.ofReal_toReal_eq_iff, apply_ne_top]
+  simp [ne_eq, apply_ne_top]
 
 /-- This enables the use of the `lift p to Prob α` tactic when `p : PMF α`, which creates a
 new goal of `p.support.Finite`. -/

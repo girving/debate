@@ -43,7 +43,7 @@ lemma bernoulli_prob_false' (p : ℝ) : (bernoulli p).prob false = 1 - max 0 (mi
 
 -- If p is in [0,1], the probabilities are as expected
 lemma bernoulli_prob_true {p : ℝ} (m : p ∈ Icc 0 1) : (bernoulli p).prob true = p := by
-  simp only [bernoulli_prob_true', ite_true, min_eq_right m.2, max_eq_right m.1]
+  simp only [bernoulli_prob_true', min_eq_right m.2, max_eq_right m.1]
 lemma bernoulli_prob_false {p : ℝ} (m : p ∈ Icc 0 1) : (bernoulli p).prob false = 1-p := by
   simp only [bool_prob_false_of_true, bernoulli_prob_true m]
 

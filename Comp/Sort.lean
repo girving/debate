@@ -80,9 +80,9 @@ lemma valid_oracle (π : α ≃ Fin (Fintype.card α)) : (oracle π).Valid where
 it without the validity assumption. -/
 def unoracle (o : SOracle α) : α → Fin (Fintype.card α) :=
   fun x ↦ ⟨(Finset.univ.filter fun y ↦ x ≠ y ∧ (o (x,y)).argmax = false).card, by
-    simp only [Finset.card_lt_iff_ne_univ, ← Finset.compl_eq_empty_iff, ne_eq,
-      ← Finset.nonempty_iff_ne_empty, Finset.compl_filter, Bool.not_eq_false,
-      Finset.filter_nonempty_iff, Finset.mem_univ, true_and]
+    simp only [Finset.card_lt_iff_ne_univ, ← Finset.compl_eq_empty_iff, ne_eq, ←
+      Finset.nonempty_iff_ne_empty, Finset.compl_filter, Finset.filter_nonempty_iff,
+      Finset.mem_univ, true_and]
     use x
     simp only [not_true_eq_false, false_and, not_false_eq_true]⟩
 
@@ -97,8 +97,7 @@ lemma unoracle_oracle (π : α ≃ Fin (Fintype.card α)) : unoracle (oracle π)
     · intro h; simp only [h, and_true]
       contrapose h; simp only [not_not] at h
       simp only [h, lt_self_iff_false, not_false_eq_true]
-  simp only [← Finset.card_map π.toEmbedding, Finset.map_filter, Function.comp,
-    Equiv.apply_symm_apply, Finset.map_univ_equiv, s]
+  simp only [← Finset.card_map π.toEmbedding, Finset.map_filter, Finset.map_univ_equiv, s]
   rw [← Fin.card_Iio]
   apply congr_arg
   ext k
@@ -144,7 +143,7 @@ lemma sort_eq {π : α ≃ Fin (Fintype.card α)} {s t : List α} (d : s.Nodup)
   · refine h.perm.symm.trans ?_
     apply List.perm_of_nodup_nodup_toFinset_eq d
     · exact List.Nodup.map π.symm.injective (List.nodup_finRange _)
-    · simp only [u, Finset.map_toFinset, List.map_eq_map]
+    · simp only [u, List.map_eq_map]
       ext x
       simp only [Finset.mem_univ, List.mem_toFinset, List.mem_map, List.mem_finRange, true_and,
         true_iff]
@@ -161,7 +160,7 @@ lemma List.indexOf_map (l : List α) (f : α ≃ β) (x : β) :
     (l.map f).idxOf x = l.idxOf (f.symm x) := by
   induction' l with y l h
   · simp
-  · simp [List.idxOf_cons, h, Equiv.eq_symm_apply, beq_eq_decide, bif_eq_if]
+  · simp [List.idxOf_cons, h, Equiv.eq_symm_apply, bif_eq_if]
 
 /-- `sort_to_oracle` is correct -/
 lemma sort_to_oracle_eq {π : α ≃ Fin (Fintype.card α)} {s t : List α} (d : s.Nodup)
@@ -242,10 +241,10 @@ omit [Fintype α] in
 /-- `merge` is `List.merge` -/
 lemma merge_eq (o : SOracle α) (d : o.IsPure) : (s t : List α) →
     (merge s t).prob (fun _ ↦ o) = pure (List.merge s t (fun x y ↦ (o (x,y)).argmax))
-  | [], _ => by simp only [Comp.prob', merge, Comp.prob_pure, List.merge]
-  | (_ :: _), [] => by simp only [Comp.prob', merge, Comp.prob_pure, List.merge]
+  | [], _ => by simp only [merge, Comp.prob_pure, List.merge]
+  | (_ :: _), [] => by simp only [merge, Comp.prob_pure, List.merge]
   | (a :: l), (b :: r) => by
-    simp only [Comp.prob', merge, Comp.prob_bind, Comp.prob_allow_all, Comp.prob_query, List.merge]
+    simp only [merge, Comp.prob_bind, Comp.prob_allow_all, Comp.prob_query, List.merge]
     rw [d.eq_pure (a,b)]
     simp only [pure_bind, Prob.argmax_pure]
     induction' (o (a, b)).argmax with b
@@ -269,7 +268,7 @@ lemma mergeSort_eq (o : SOracle α) (d : o.IsPure) : (s : List α) →
   termination_by s => s.length
   decreasing_by
   · simp only [List.length_take, List.length_cons, inf_lt_right, not_le]; omega
-  · simp only [List.length_drop, List.length_cons, or_true, or_self, true_and]; omega
+  · simp only [List.length_drop, List.length_cons]; omega
 
 omit [Fintype α]
 /-- `mergeSort` sorts -/
@@ -289,21 +288,20 @@ lemma sorts_mergeSort : Sorts (mergeSort (α := α)) := by
 /-- `merge` is `O(n)` -/
 lemma cost_merge_le (o : SOracle α) : (s t : List α) →
     (merge s t).cost (fun _ ↦ o) () ≤ s.length + t.length
-  | [], _ => by simp [merge, List.merge]
-  | (_ :: _), [] => by simp [merge, List.merge]; positivity
+  | [], _ => by simp [merge]
+  | (_ :: _), [] => by simp [merge]; positivity
   | (a :: l), (b :: r) => by
-    simp only [Comp.cost', merge, Comp.cost_bind, Comp.cost_allow_all, Comp.cost_query,
-      Comp.prob_allow_all, Comp.prob_query, List.length_cons, Nat.succ_eq_add_one, Nat.cast_min,
-      Nat.cast_add, Nat.cast_one, min_add_add_right, add_comm 1, add_comm (1 : ℝ),
+    simp only [merge, Comp.cost_bind, Comp.cost_allow_all, Comp.cost_query, Comp.prob_allow_all,
+      Comp.prob_query, List.length_cons, Nat.cast_add, Nat.cast_one, add_comm (1 : ℝ),
       add_le_add_iff_right, ← add_assoc]
     refine Prob.exp_le_of_forall_le fun b _ ↦ ?_
     induction' b with b
     · simp only [Bool.false_eq_true, ↓reduceIte, bind_pure_comp, Comp.cost_map]
       refine le_trans (cost_merge_le o _ _) ?_
-      simp only [List.length_cons, Nat.succ_eq_add_one, Nat.cast_add, Nat.cast_one, le_refl]
+      simp only [List.length_cons, Nat.cast_add, Nat.cast_one, le_refl]
     · simp only [↓reduceIte, bind_pure_comp, Comp.cost_map]
       refine le_trans (cost_merge_le o _ _) ?_
-      simp only [List.length_cons, Nat.succ_eq_add_one, Nat.cast_add, Nat.cast_one]
+      simp only [List.length_cons, Nat.cast_add, Nat.cast_one]
       linarith
 
 /-- `merge` preserves `length` -/
@@ -311,18 +309,17 @@ lemma length_merge (o : SOracle α) : (s t x : List α) →
     (px : ((merge s t).prob (fun _ ↦ o)).prob x ≠ 0) → x.length = s.length + t.length
   | [], t, x, px => by
     simp only [merge, Comp.prob_pure, Prob.prob_pure, ne_eq, ite_eq_right_iff, one_ne_zero,
-      imp_false, not_not, List.reverseAux_eq] at px
-    simp only [px, List.length_append, List.length_reverse, List.length_nil, zero_add]
+      imp_false, not_not] at px
+    simp only [px, List.length_nil, zero_add]
   | (_ :: _), [], _, px => by
-    simp only [merge, List.reverseAux_eq, Comp.prob_pure, Prob.prob_pure, ne_eq,
-      ite_eq_right_iff, one_ne_zero, imp_false, not_not] at px
-    simp only [px, List.length_append, List.length_reverse, List.length_cons, Nat.succ_eq_add_one,
-      List.length_nil, add_zero]
+    simp only [merge, Comp.prob_pure, Prob.prob_pure, ne_eq, ite_eq_right_iff, one_ne_zero,
+      imp_false, not_not] at px
+    simp only [px, List.length_cons, List.length_nil, add_zero]
   | (a :: s), (b :: t), x, px => by
     simp only [merge, Comp.prob_bind, Comp.prob_allow_all, Comp.prob_query, if_false, if_true,
-      Prob.prob_bind_ne_zero, Bool.exists_bool, cond_false, cond_true, Bool.false_eq_true,
-      Comp.prob_pure, Prob.prob_pure, apply_ite (fun x : ℝ ↦ x ≠ 0), ne_eq, not_true, not_false_iff,
-      one_ne_zero, if_false_right, and_true] at px
+      Prob.prob_bind_ne_zero, Bool.exists_bool, Bool.false_eq_true, Comp.prob_pure, Prob.prob_pure,
+      apply_ite (fun x : ℝ ↦ x ≠ 0), ne_eq, not_true, not_false_iff, one_ne_zero, if_false_right,
+      and_true] at px
     rcases px with ⟨_, _, px, e⟩ | ⟨_, _, px, e⟩
     all_goals simp only [e, length_merge _ _ _ _ px, List.length_cons]; omega
 
@@ -333,11 +330,11 @@ lemma length_mergeSort (o : SOracle α) : (s x : List α) →
   | [] => by simp [mergeSort, Prob.prob_pure]
   | [a] => by simp [mergeSort, Prob.prob_pure]
   | a :: b :: l => by
-    simp only [mergeSort, List.mergeSort, Prob.prob_bind_ne_zero, Comp.prob_bind]
+    simp only [mergeSort, Prob.prob_bind_ne_zero, Comp.prob_bind]
     intro x ⟨x1, px1, x2, px2, pm⟩
-    simp only [Comp.prob', Comp.prob_bind, length_mergeSort o _ x1 px1, length_mergeSort o _ x2 px2,
-      length_merge o _ _ _ pm, List.length_cons, List.MergeSort.Internal.splitInTwo_fst,
-      List.length_take, List.MergeSort.Internal.splitInTwo_snd, List.length_drop]
+    simp only [length_mergeSort o _ x1 px1, length_mergeSort o _ x2 px2, length_merge o _ _ _ pm,
+      List.length_cons, List.MergeSort.Internal.splitInTwo_fst, List.length_take,
+      List.MergeSort.Internal.splitInTwo_snd, List.length_drop]
     rw [min_eq_left]
     all_goals omega
   termination_by s => s.length
@@ -439,9 +436,9 @@ lemma cost_mergeSort_le (o : SOracle α) (s : List α) :
     induction' s with b s d
     · simp only [List.length_singleton] at hn
       simp [mergeSort,  ← hn]
-    · simp only [List.length_cons, Nat.succ_eq_add_one] at hn
-      simp only [Comp.cost', mergeSort, Comp.cost_bind, List.MergeSort.Internal.splitInTwo,
-        Prob.exp_add, Prob.exp_const]
+    · simp only [List.length_cons] at hn
+      simp only [mergeSort, Comp.cost_bind, List.MergeSort.Internal.splitInTwo, Prob.exp_add,
+        Prob.exp_const]
       refine le_trans (add_le_add (h _ ?_ _ rfl) (add_le_add (h _ ?_ _ rfl)
           (Prob.exp_le_of_forall_le fun x px ↦ Prob.exp_le_of_forall_le (b := n) fun y py ↦ ?_))) ?_
       · simp only [List.length_cons, List.splitAt_eq, List.length_take, ← hn, inf_lt_right, not_le]
@@ -450,8 +447,7 @@ lemma cost_mergeSort_le (o : SOracle α) (s : List α) :
         omega
       · refine le_trans (cost_merge_le _ _ _) ?_
         simp only [length_mergeSort _ _ _ px, List.length_cons, List.splitAt_eq, List.length_take,
-          Nat.cast_min, length_mergeSort _ _ _ py, List.length_drop, ← Nat.cast_min, ← Nat.cast_add,
-          Nat.cast_le]
+          length_mergeSort _ _ _ py, List.length_drop, ← Nat.cast_add, Nat.cast_le]
         omega
       · clear d
         simp only [← Nat.cast_add, Nat.cast_le]

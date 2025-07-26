@@ -133,7 +133,7 @@ lemma log_partition_le {μ q p} {A : Distinguisher X Y} {η : ℝ} (η1 : |η| �
   by_cases η0 : η = 0
   · simp [η0, partition, Prob.partition_zero]
   · have d1 : ∀ x y, |η * s * A x y (p x)| ≤ 1 := by
-      simp only [← hs, abs_mul, abs_sgn, mul_one, abs_neg]
+      simp only [← hs, abs_mul, abs_sgn, mul_one]
       bound
     have d1' : ∀ x y, |-η * s * A x y (p x)| ≤ 1 := by simp [d1]
     calc
@@ -350,7 +350,7 @@ def Mimic.Valid.reweight {p : Mimic As} (v : p.Valid) (μ : Prob X) (q : X → P
     (A : Distinguisher X Y) (m : A ∈ As) (η : ℝ) : (p.reweight μ q A m η).Valid := by
   constructor
   · intros
-    simp only [Valid, Mimic.reweight, circuit_eval]
+    simp only [Mimic.reweight, circuit_eval]
     refine div_pos ?_ (Finset.sum_pos ?_ (by simp))
     all_goals bound
   · intro x
@@ -387,7 +387,7 @@ def Mimic.Valid.step {p : Mimic As} (v : p.Valid) {μ : Prob X} {q : X → Prob 
   ext x y
   simp only [Mimic.step, step]
   split_ifs with h
-  · simp [h, v]
+  · simp [v]
   · rfl
 
 /-- Uniform has total 1, since all the constants are the same -/
@@ -448,7 +448,7 @@ lemma exists_small (μ : Prob X) (q : X → Prob Y) (As : Set (Distinguisher X Y
       intro n
       induction' n with n h
       · apply Mimic.Valid.uniform
-      · simp only [Function.iterate_succ_apply', h, eval_step, Mimic.Valid.step]
+      · simp only [Function.iterate_succ_apply', h, Mimic.Valid.step]
     have es : ∀ n, ((Mimic.step μ q ε (ε / 2))^[n] (Mimic.uniform As)).eval =
         (step μ q As ε (ε / 2))^[n] (Mimic.uniform As).eval := by
       intro n

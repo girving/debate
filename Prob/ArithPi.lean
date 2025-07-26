@@ -27,7 +27,7 @@ lemma exp_finsupp_apply (p : Prob α) (u : α → β →₀ V) (y : β) :
   generalize p.prob.support = s
   induction' s using Finset.induction with x s m h
   · simp
-  · simp [Finset.sum_insert m, h]
+  · simp [Finset.sum_insert m]
 
 /-- Commute a linear operator inside an exp -/
 lemma apply_exp (p : Prob α) (u : α → V) (f : V → W) (f0 : f 0 = 0)
@@ -38,5 +38,3 @@ lemma apply_exp (p : Prob α) (u : α → V) (f : V → W) (f0 : f 0 = 0)
   induction' s using Finset.induction with x s m h
   · simp only [Finset.sum_empty, f0]
   · simp only [Finset.sum_insert m, fa, fs, h]
-
-end Prob

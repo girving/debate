@@ -57,7 +57,7 @@ lemma cexp_nonneg (h : ∀ x, f.prob x ≠ 0 → q x → 0 ≤ v x) : 0 ≤ f.ce
 /-- If something is true with probability 1, conditioning on it does nothing -/
 lemma cexp_eq_exp (q1 : f.pr q = 1) : f.cexp u q = f.exp u := by
   simp only [cexp, q1, inv_one, one_smul]; simp only [pr_eq_one] at q1
-  apply exp_congr; intro x m; simp only [q1 x m, and_true, if_true]
+  apply exp_congr; intro x m; simp only [q1 x m, if_true]
 
 /-- If something is true with probability 1, conditioning on it does nothing -/
 lemma cond_eq_pr (q1 : f.pr q = 1) : f.cond p q = f.pr p := by
@@ -118,16 +118,16 @@ lemma exp_eq_cexp_add_cexp (q : α → Prop) :
     simp only [q0 x m, not_false_eq_true, ↓reduceIte]
   by_cases q1 : f.pr q = 1
   · simp only [q1, cexp, inv_one, one_smul, sub_self, zero_smul, add_zero]
-    simp only [pr_eq_one] at q1; apply exp_congr; intro x m; simp only [q1 x m, if_true, and_true]
+    simp only [pr_eq_one] at q1; apply exp_congr; intro x m; simp only [q1 x m, if_true]
   replace q1 : 1 - f.pr q ≠ 0 := by rw [sub_ne_zero]; exact Ne.symm q1
   simp only [cexp, pr_neg, smul_smul, mul_inv_cancel₀ q0, mul_inv_cancel₀ q1, one_smul]
-  simp only [pr, ←exp_add]; apply exp_congr; intro x _
+  simp only [← exp_add]; apply exp_congr; intro x _
   by_cases qx : q x; repeat { simp only [qx, if_true, if_false]; norm_num }
 
 /-- exp can be decomposed as a expectation over cexp's w.r.t. a function -/
 lemma exp_eq_exp_cexp (g : α → β) :
     f.exp u = (g <$> f).exp (fun k ↦ f.cexp u (fun y ↦ g y = k)) := by
-  simp only [map_eq, exp_bind, exp_pure, cexp, ← exp_smul_const, ← exp_const_smul]
+  simp only [map_eq, exp_bind, exp_pure, cexp, ← exp_const_smul]
   rw [exp_comm]
   refine exp_congr fun x p ↦ ?_
   have e : ∀ y, (f.pr fun z => g z = g y)⁻¹ • (if g x = g y then u x else 0) =
@@ -191,8 +191,7 @@ theorem bayes (f : Prob α) (a b : α → Prop) (b0 : f.pr b ≠ 0) :
 /-- Pure cexps are simple -/
 lemma cexp_pure {x : α} : (pure x : Prob α).cexp u q = if q x then u x else 0 := by
   simp only [cexp, exp_pure, pr_pure]; by_cases qx : q x
-  repeat simp only [qx, and_true, if_true, and_false, if_false, inv_zero, pr_pure, inv_one,
-    one_smul, zero_smul]
+  repeat simp only [qx, if_true, if_false, inv_zero, inv_one, one_smul, zero_smul]
 
 /-- Pure conditional probabilities are just p ∧ q booleans -/
 lemma cond_pure {x : α} : (pure x : Prob α).cond p q = if p x ∧ q x then 1 else 0 := by
@@ -203,14 +202,14 @@ lemma cond_pure {x : α} : (pure x : Prob α).cond p q = if p x ∧ q x then 1 e
 lemma cexp_zero : f.cexp (fun _ ↦ (0 : V)) q = 0 := by
   simp only [cexp, ite_self, exp_const, smul_zero]
 lemma cexp_add {u v : α → V} : f.cexp (fun x ↦ u x + v x) q = f.cexp u q + f.cexp v q := by
-  simp only [cexp, ite_add_zero, exp_add, add_div, smul_add]
+  simp only [cexp, ite_add_zero, exp_add, smul_add]
 lemma cexp_sum {s : Finset β} {u : β → α → V} :
     f.cexp (fun y ↦ s.sum (fun x ↦ u x y)) q = s.sum (fun x ↦ f.cexp (u x) q) := by
   induction' s using Finset.induction with _ s m h
   · simp only [Finset.sum_empty, cexp_zero]
   · simp only [Finset.sum_insert m, cexp_add, h]
 lemma cexp_const_mul {s : ℝ} : f.cexp (fun x ↦ s • u x) q = s • f.cexp u q := by
-  simp only [cexp, smul_ite_zero, ← exp_const_smul, mul_div, smul_comm s]
+  simp only [cexp, smul_ite_zero, ← exp_const_smul, smul_comm s]
 
 /-- cond depends only on the conditional supp -/
 lemma cond_congr {p q r : α → Prop} (pq : ∀ x, f.prob x ≠ 0 → r x → (p x ↔ q x)) :
@@ -233,7 +232,7 @@ lemma cexp_if :
     right
     refine exp_eq_zero fun x m ↦ ?_
     simp only [pr_eq_zero] at z
-    simp only [z x m, if_false, pr_eq_zero]
+    simp only [z x m, if_false]
   · simp only [smul_smul, div_eq_inv_mul, mul_assoc, mul_inv_cancel₀ z, mul_one]
     refine congr_arg₂ _ rfl (exp_congr ?_); intro x _; split_ifs; repeat rfl
 
@@ -334,7 +333,7 @@ lemma cond_bind_le_second {f : Prob α} {g : α → Prob β} (p q : β → Prop)
   · simp only [d0, div_zero, b0]
   simp only [div_le_iff₀ ((Ne.symm d0).lt_of_le pr_nonneg)]
   simp only [pr, ←exp_const_mul, exp_bind]; apply exp_mono; intro x m
-  simp only [exp_map, Function.comp]
+  simp only [exp_map]
   by_cases ix : i x
   · simp only [Function.comp_def, ix, and_true, mul_ite, mul_one, mul_zero]
     specialize gb x m ix
@@ -342,7 +341,7 @@ lemma cond_bind_le_second {f : Prob α} {g : α → Prob β} (p q : β → Prop)
     by_cases gq : (g x).pr q = 0
     · rw [exp_eq_zero]
       · apply exp_nonneg; intro y _; by_cases qy : q y
-        repeat simp only [qy, if_true, if_false, mul_one, mul_zero, b0, le_refl]
+        repeat simp only [qy, if_true, if_false, b0, le_refl]
       · intro y n; rw [pr_eq_zero] at gq; simp only [gq y n, and_false, if_false]
     · simp only [div_le_iff₀ ((Ne.symm gq).lt_of_le pr_nonneg)] at gb
       simp only [pr, ← exp_const_mul, mul_ite, mul_one, mul_zero] at gb
@@ -362,4 +361,4 @@ lemma cexp_le_of_forall {b : ℝ} (h : ∀ x, f.prob x ≠ 0 → q x → v x ≤
 
 lemma cond_map {f : α → β} {g : Prob α} {p : β → Prop} {q : β → Prop} :
     (f <$> g).cond p q = g.cond (fun y ↦ p (f y)) (fun y ↦ q (f y)) := by
-  simp only [cond, pr_map, ← exp_map]
+  simp only [cond, pr_map]

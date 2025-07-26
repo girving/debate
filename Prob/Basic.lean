@@ -23,7 +23,7 @@ lemma prob_bind' (f : Prob α) (g : α → Prob β) :
 
 /-- (pure x).prob is the indicator function on {x} -/
 lemma prob_pure (x y : α) : (pure x : Prob α).prob y = if y = x then 1 else 0 := by
-  simp only [Prob.prob, prob_pure', Finsupp.single_apply, eq_comm]
+  simp only [prob_pure', Finsupp.single_apply, eq_comm]
 
 /-- pure.exp is function application -/
 @[simp] lemma exp_pure (x : α) (f : α → V) : (pure x : Prob α).exp f = f x := by
@@ -38,7 +38,7 @@ lemma seqRight_eq (x : Prob α) (y : Prob β) : x *> y = x >>= (fun _ ↦ y) := 
 /-- (f >>= g).prob as an exp -/
 lemma prob_bind (f : Prob α) (g : α → Prob β) (y : β) :
     (f >>= g).prob y = f.exp (fun x ↦ (g x).prob y) := by
-  simp only [Prob.prob, prob_bind', Prob.exp, Finsupp.sum_apply]
+  simp only [prob_bind', Prob.exp, Finsupp.sum_apply]
   apply Finsupp.sum_congr; intro x _; rw [Finsupp.coe_smul, Pi.smul_apply, smul_eq_mul]
 
 /-- bind.exp is iterated exp -/
@@ -58,10 +58,10 @@ lemma left_id (f : Prob α) : f >>= pure = f := by
     Finsupp.mem_support_iff, ne_eq, ite_not, smul_eq_mul]
   split_ifs; exact Eq.symm (by assumption); rfl
 lemma right_id (x : α) (f : α → Prob β) : pure x >>= f = f x := by
-  ext y; simp only [prob_bind, prob_pure, exp_pure]
+  ext y; simp only [prob_bind, exp_pure]
 lemma assoc (f : Prob α) (g : α → Prob β) (h : β → Prob γ) :
     f >>= g >>= h = f >>= (fun x ↦ g x >>= h) := by
-  ext z; simp only [prob_bind, exp_bind, Finsupp.sum_apply]
+  ext z; simp only [prob_bind, exp_bind]
 
 /-- Prob is a lawful monad -/
 instance : LawfulMonad Prob := LawfulMonad.mk'
@@ -152,7 +152,7 @@ lemma pr_congr {f : Prob α} {p q : α → Prop} (e : ∀ x, f.prob x ≠ 0 → 
 lemma bind_congr (f : Prob α) (g h : α → Prob β) (e : ∀ x, f.prob x ≠ 0 → g x = h x) :
     f >>= g = f >>= h := by
   ext y; simp only [prob_bind]; apply exp_congr; intro x m
-  simp only [f.mem_iff] at m; simp only [e _ m]
+  simp only at m; simp only [e _ m]
 
 /-- total for Fintypes -/
 lemma fintype_total (f : Prob α) [Fintype α] : (Finset.univ : Finset α).sum f.prob = 1 := by

@@ -57,7 +57,7 @@ lemma mean_pure (x : ℝ) : (pure x : Prob ℝ).mean = x := by simp only [mean, 
 lemma mean_bind (f : Prob α) (g : α → Prob ℝ) : (f >>= g).mean = f.exp (fun x ↦ (g x).mean) := by
   simp only [mean, exp_bind]
 lemma mean_map (f : α → ℝ) (g : Prob α) : (f <$> g).mean = g.exp f := by
-  simp only [mean, exp_map, Function.comp, id]
+  simp only [mean, exp_map]
   rfl
 
 -- Expectation is linear (weak version for independent events, smul version)
@@ -170,7 +170,7 @@ lemma pr_bind {f : Prob α} {g : α → Prob β} (p : β → Prop) :
 
 /-- (f <$> g).pr works as expected -/
 lemma pr_map {f : α → β} {g : Prob α} (p : β → Prop) : (f <$> g).pr p = g.pr (fun x ↦ p (f x)) := by
-  simp only [pr, exp_map, Function.comp]
+  simp only [pr, exp_map]
   rfl
 
 /-- f.exp g < f.exp h if g ≤ h and g x < h x on at least one nonzero probability x -/
@@ -225,7 +225,7 @@ lemma pr_ne_zero (f : Prob α) (p : α → Prop) : f.pr p ≠ 0 ↔ ∃ x, f.pro
 
 /-- `0 < pr` if there is some nonzero prob -/
 lemma pr_pos (f : Prob α) (p : α → Prop) : 0 < f.pr p ↔ ∃ x, f.prob x ≠ 0 ∧ p x := by
-  simp only [← pr_ne_zero, pr_nonneg.gt_iff_ne]
+  simp only [← pr_ne_zero, pr_nonneg.lt_iff_ne]; exact ne_comm
 
 /-- f.pr p = 1 in terms of forall -/
 lemma pr_eq_one {f : Prob α} {p : α → Prop} : f.pr p = 1 ↔ ∀ x, f.prob x ≠ 0 → p x := by
@@ -273,7 +273,7 @@ lemma pr_eq_add_of_cut {f : Prob α} {p : α → Prop} (q : α → Prop) :
 /-- Markov's inequality -/
 lemma markov' (f : Prob α) (g : α → ℝ) (f0 : ∀ x, f.prob x ≠ 0 → 0 ≤ g x) {a : ℝ} (a0 : 0 < a) :
     f.pr (fun x ↦ a ≤ g x) ≤ f.exp g / a := by
-  simp only [le_div_iff₀ a0, pr, mean, ← exp_mul_const, ite_mul, one_mul, zero_mul, id]
+  simp only [le_div_iff₀ a0, pr, ← exp_mul_const, ite_mul, one_mul, zero_mul]
   apply exp_mono; intro x m; split; assumption; exact f0 _ m
 lemma markov (f : Prob ℝ) (f0 : ∀ x, f.prob x ≠ 0 → 0 ≤ x) {a : ℝ} (a0 : 0 < a) :
     f.pr (fun x ↦ a ≤ x) ≤ f.mean / a :=
@@ -286,7 +286,7 @@ lemma le_exp_of_cut {f : Prob α} {u : α → ℝ} (i : α → Prop) (a b : ℝ)
   have h : ∀ x, f.prob x ≠ 0 → b * (if i x then 1 else 0) ≤ u x := by
     intro x fx; by_cases ix : i x
     · simp only [ix, if_true, mul_one]; exact iu x fx ix
-    · simp only [ix, if_false, pr_nonneg, mul_zero]; exact u0 x fx ix
+    · simp only [ix, if_false, mul_zero]; exact u0 x fx ix
   refine le_trans ?_ (exp_mono h)
   rw [exp_const_mul, ←pr, mul_comm]
   exact mul_le_mul_of_nonneg_left fi b0
@@ -303,7 +303,7 @@ lemma exp_eq_single (f : Prob α) (g : α → V) (y : α) (h : ∀ x, f.prob x �
   rw [exp, Finsupp.sum, Finset.sum_eq_single y]
   · intro x px xy
     simp only [Finsupp.mem_support_iff] at px
-    simp only [px, false_or, h x px xy, smul_zero]
+    simp only [h x px xy, smul_zero]
   · intro py
     simp only [Finsupp.mem_support_iff, Decidable.not_not] at py
     simp only [py, zero_smul]
@@ -429,7 +429,7 @@ lemma sum_pr_eq_pr_and (f : Prob α) (p : β → α → Prop) (s : Finset β)
         specialize d a b x
         contrapose d
         simp only [not_not] at d
-        simp only [d, true_or, bm, or_true, pax, true_implies, Classical.not_imp]
+        simp only [d, true_or, bm, or_true, pax, true_implies]
         contrapose m
         simp only [not_not] at m ⊢
         simp only [m, bm]

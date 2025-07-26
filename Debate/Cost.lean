@@ -59,7 +59,7 @@ lemma alice_steps_cost (bob : Bob ι) (vera : Vera ι) (f : BComp ι u α) :
   · simp only [steps, step, bind_assoc, Comp.cost_bind, exp_const, Comp.cost_allow_all, alice_cost,
       mem_singleton_iff, reduceCtorEq, not_false_eq_true, Comp.cost_eq_zero, zero_add, ite_self,
       Comp.cost_pure, Comp.worst_query', Nat.cast_add, Nat.cast_succ, CharP.cast_eq_zero, add_mul,
-      one_mul, add_le_add_iff_left, Comp.cost_map, Comp.cost_sample,
+      one_mul, add_le_add_iff_left, Comp.cost_sample,
       apply_ite (f := fun c ↦ Comp.cost c (fun _ ↦ o) AliceId)]
     refine exp_le_of_forall_le fun p _ ↦ exp_le_of_forall_le fun x _ ↦ ?_
     match x with
@@ -116,7 +116,7 @@ theorem alice_fast (k : ℝ) (k0 : 0 < k) (f : BComp ι u Bool) (bob : Bob ι) (
       f.worst * (5000 * k^2 * Real.log (200 * f.worst) + 1) := by
   refine le_trans (alice_debate_cost _ _ _) ?_
   by_cases f0 : f.worst = 0
-  · simp only [f0, CharP.cast_eq_zero, zero_mul, Real.log_zero, zero_add, mul_one, le_refl]
+  · simp only [f0, CharP.cast_eq_zero, zero_mul, le_refl]
   · refine mul_le_mul_of_nonneg_left ?_ (by positivity)
     have f1 : max 1 f.worst = f.worst := by omega
     simp only [defaults, samples, ← Real.log_inv, f1]
@@ -136,7 +136,7 @@ theorem bob_fast (k : ℝ) (k0 : 0 < k) (f : BComp ι u Bool) (alice : Alice ι)
   generalize hd : (20000 / 9 : ℝ) = d
   refine le_trans (bob_debate_cost _ _ _) ?_
   by_cases f0 : f.worst = 0
-  · simp only [f0, CharP.cast_eq_zero, zero_mul, mul_zero, zero_add, mul_one, le_refl]
+  · simp only [f0, CharP.cast_eq_zero, zero_mul, mul_zero, le_refl]
   · refine mul_le_mul_of_nonneg_left ?_ (by positivity)
     have f1 : max 1 f.worst = f.worst := by omega
     simp only [defaults, samples, ← Real.log_inv, f1]
@@ -187,7 +187,7 @@ lemma post_stepsV (alice : Alice ι) (bob : Bob ι) (vera : Vera ι) (f : BComp 
     (stepsV alice bob f).allow_all >>= postV vera = steps alice bob vera f := by
   induction' f with x n p g h i m y f h
   · simp only [Comp.allow_all, stepsV, pure, Comp.allow_pure', Comp.pure'_bind, postV, steps]
-  · simp only [stepsV, Comp.allow_all_bind, bind_assoc, steps, ← h]; rfl
+  · simp only [stepsV, steps, ← h]; rfl
   · simp only [stepsV, stepV, bind_pure_comp, bind_assoc, Comp.allow_all_bind,
       Comp.allow_all_allow, steps, step, ← h]
     strip p

@@ -18,7 +18,7 @@ variable {α : Type}
 /-- Convex Jensen's inequality for `Prob` -/
 lemma map_exp_le (p : Prob α) {f : ℝ → ℝ} {s : Set ℝ} (fc : ConvexOn ℝ s f) {g : α → ℝ}
     (sub : ∀ x, p.prob x ≠ 0 → g x ∈ s) : f (p.exp g) ≤ p.exp (fun x ↦ f (g x)) := by
-  simp only [exp, Finsupp.sum, ← smul_eq_mul]
+  simp only [exp, Finsupp.sum]
   refine ConvexOn.map_sum_le fc ?_ ?_ ?_
   · intro _ _; exact p.prob_nonneg
   · simpa only [Finsupp.sum] using p.total

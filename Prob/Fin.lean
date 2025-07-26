@@ -31,7 +31,7 @@ def fin (p : Prob α) : Prob (Fin p.supp.card) :=
     p.fromfin (p.tofin x) = x := by
   by_cases f : ∃ n, α = Fin n
   all_goals simp only [fromfin, tofin, mem_iff, ne_eq, px, not_false_eq_true, ↓reduceDIte,
-    Equiv.symm_apply_apply, f, eq_mpr_eq_cast, eq_mp_eq_cast, cast_cast, cast_eq]
+    Equiv.symm_apply_apply]
 
 @[simp] lemma fromfin_tofin_map (p : Prob α) : (fun x ↦ p.fromfin (p.tofin x)) <$> p = p := by
   ext x
